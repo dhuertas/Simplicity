@@ -1,0 +1,36 @@
+{
+  // Global parameters
+  "global" : {
+
+    // Simulation time limit
+    "timeLimit" : 10000,
+
+    // Time scale exponent
+    //   0 = seconds
+    //  -3 = ms
+    //  -6 = us
+    //  -9 = ns
+    // -12 = ps
+    "timeScaleExp" : -12,
+
+    "timeStart" : 0,
+
+    // Log simulation messages to this file
+    "logFileName" : "sim.out"
+  },
+
+  // Domain configuration
+  "domain" : {
+
+    // Domain name
+    "name" : "DomainName",
+
+    // Initialization file
+    "initFileName" : "init.json",
+
+    // Domain modules
+    "modules" : {
+      "moduleName" : "moduleClass",
+    }
+  }
+}
