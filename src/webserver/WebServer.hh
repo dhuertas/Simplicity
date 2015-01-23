@@ -34,6 +34,8 @@
 #include <errno.h>
 #include <signal.h>
 
+#include "JsonValue.hh"
+
 #define SOCK_RD             0
 #define SOCK_WR             1
 #define TIME_OUT            10 // Keep Alive timeout 10 seconds
@@ -101,6 +103,8 @@ class WebServer {
 
   static pthread_mutex_t mutexSockFd_;
 
+  JsonValue *config_;
+
   // Server port
   unsigned short port_;
 
@@ -130,6 +134,12 @@ class WebServer {
   string documentRoot_;
 
  public:
+
+  // Constructor
+  WebServer();
+
+  // Destructor
+  ~WebServer() {}
 
   void initialize();
 

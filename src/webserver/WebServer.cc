@@ -31,6 +31,17 @@ void *startWebServer(void *sim) {
     return 0;
 }
 
+WebServer::WebServer() : 
+  config_(NULL),
+  port_(8080),
+  numberOfThreads_(10),
+  thread_(NULL),
+  threadId_(NULL),
+  serverSockFd_(0),
+  sim_(NULL) {
+
+}
+
 //------------------------------------------------------------------------------
 void WebServer::initialize() {
 
@@ -39,6 +50,8 @@ void WebServer::initialize() {
   numberOfThreads_ = 10;
 
   port_ = 8080;
+
+  // Read server config from simulation
 
   serverSockFd_ = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -287,16 +300,4 @@ void WebServer::requestHandler(int tid, int clientSockFd) {
   close(clientSockFd);
 }
 
-//------------------------------------------------------------------------------
-int startWebServer() {
 
-  WebServer *server = new WebServer();
-
-  server->start();
-
-  server->finalize();
-
-  delete server;
-
-  return 0;
-}
