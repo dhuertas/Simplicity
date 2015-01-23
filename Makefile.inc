@@ -2,8 +2,6 @@ CC = g++
 CFLAGS = -g -Wall -O3
 SHELL = /bin/bash
 
-TARGET = particles
-
 INCLUDE = \
   -I../../src \
   -I../../src/json \
