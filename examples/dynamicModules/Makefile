@@ -1,25 +1,33 @@
-CC = g++
-CFLAGS = -g -Wall
-SHELL = /bin/bash
-
-BASE =
+include ../../Makefile.inc
 
 TARGET = dynamicModules
 
-INCLUDE = \
-	-I../../src \
-	-I../../src/base \
-	-I../../src/json
+INCLUDE += \
+	-I ./src
 
-# Base sources
-SOURCES = $(shell find ../../src -name '*.cc')
+SOURCES += $(shell find ./src -type f \( -name '*.cc' ! -name test.cc \) )
 
-# Local sources
-SOURCES += $(shell find ./src -name '*.cc')
+OBJS += $(shell find ./src -type f \( -name '*.cc' ! -name test.cc \) | sed 's/.cc/.o/g')
 
-default:
-	$(CC) $(CFLAGS) $(INCLUDE) $(SOURCES) -o $(TARGET)
+all: $(TARGET)
+
+default: $(TARGET)
+
+-include $(OBJS:.o=.d)
+
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) $(LIBS) -o $(TARGET)
+
+%.o: %.cc
+	gcc -c $(CFLAGS) $(LIBS) $(INCLUDE) $*.cc -o $*.o
+	gcc -MM $(CFLAGS) $(LIBS) $(INCLUDE) $*.cc > $*.d
 
 clean:
+	@rm -f ../../src/*.o ../../src/*.d
+	@rm -f ../../src/json/*.o ../../src/json/*.d
+	@rm -f ../../src/webserver/*.o ../../src/webserver/*.d
+	@rm -f ./src/*.o ./src/*.d
+	@rm -rf $(TARGET).dSYM
 	@rm -f $(TARGET)
-	@rm -f $(shell find ../../src -name '*.o')
+
+.PHONY: all clean
