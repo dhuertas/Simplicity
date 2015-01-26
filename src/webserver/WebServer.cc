@@ -1,4 +1,5 @@
 #include "WebServer.hh"
+#include "Simulation.hh"
 
 int WebServer::status_ = WebServer::STOPPED;
 
@@ -31,6 +32,7 @@ void *startWebServer(void *sim) {
     return 0;
 }
 
+//------------------------------------------------------------------------------
 WebServer::WebServer() : 
   config_(NULL),
   port_(8080),
@@ -45,13 +47,40 @@ WebServer::WebServer() :
 //------------------------------------------------------------------------------
 void WebServer::initialize() {
 
-  int i = 0;
+  config_ = sim_->getConfig();
 
-  numberOfThreads_ = 10;
+  JsonValue *serverConfig = (*config_)["webserver"];
+  if (serverConfig->isNull() || ! serverConfig->isObject()) {
+    ERROR("Web server must be a valid JSON object");
+    return;
+  }
 
-  port_ = 8080;
+  JsonValue *numThreads = (*serverConfig)["threads"];
+  numberOfThreads_ = 10; // Default number of threads
 
-  // Read server config from simulation
+  if (numThreads->isNumber() && numThreads->toInteger() > 0) {
+    numberOfThreads_ = numThreads->toInteger();
+  }
+
+  INFO("numberOfThreads(%u)", numberOfThreads_);
+
+  JsonValue *port = (*serverConfig)["port"];
+  port_ = 8080; // Default port
+
+  if (port->isNumber() && port->toInteger() > 0) {
+    port_ = port->toInteger();
+  }
+
+  INFO("port(%u)", port_);
+
+  JsonValue *documentRoot = (*serverConfig)["documentRoot"];
+  documentRoot_ = "./www";
+
+  if (documentRoot->isString()) {
+    documentRoot_ = documentRoot->getString();
+  }
+
+  INFO("documentRoot(%s)", documentRoot_.c_str());
 
   serverSockFd_ = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -67,7 +96,7 @@ void WebServer::initialize() {
 
   listen(serverSockFd_, MAX_LISTEN);
 
-  printf("Listening to port 8080\n");
+  INFO("Listening to port %u", port_);
 
   clientSize_ = sizeof(struct sockaddr_in);
 
@@ -80,8 +109,6 @@ void WebServer::initialize() {
   clientSockFdRd_ = 0;
   clientSockFdWr_ = 0;
 
-  documentRoot_ = "./www";
-
   // Wake up threads
   thread_ = (pthread_t *)malloc(sizeof(pthread_t)*numberOfThreads_);
   threadId_ = (int *)malloc(sizeof(int)*numberOfThreads_);
@@ -89,14 +116,14 @@ void WebServer::initialize() {
   // Get as many client sockets as threads
   clientSockFd_ = (int *)malloc(sizeof(int)*numberOfThreads_);
 
-  for (i = 0; i < MAX_THREADS; i++) {
+  for (unsigned int i = 0; i < numberOfThreads_; i++) {
 
     threadId_[i] = i;
 
     if (pthread_create(&thread_[i], NULL, worker, &threadId_[i]) != 0) {
       //DEBUG("Error creating thread");
     }
-    printf("Spawning worker(%d) thread\n", i);
+    INFO("Spawning worker(%u) thread\n", i);
   }
 
   status_ = RUNNING;

@@ -202,11 +202,11 @@ void Simulation::run() {
 //------------------------------------------------------------------------------
 void Simulation::finalize() {
 
-  //int retval;
+  int retval;
 
   domain_->finalize();
 
-  //pthread_join(serverThread_, (void**)&retval);
+  pthread_join(serverThread_, (void**)&retval);
 
   reset();
 }
