@@ -7,8 +7,17 @@ INCLUDE = \
   -I../../src/json \
   -I../../src/webserver
 
-LIBS = \
-  -pthread
+LIBS = 
+
+UNAME_S = $(shell uname -s)
+
+ifeq ($(UNAME_S),Darwin)
+  LIBS += -lpthread
+endif
+
+ifeq ($(UNAME_S),Linux)
+  LIBS += -pthread
+endif
 
 # Base sources
 SOURCES = $(shell find ../../src -name '*.cc')
