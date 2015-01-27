@@ -20,8 +20,8 @@ $(TARGET): $(OBJS)
 	$(CC) $(OBJS) $(LIBS) -o $(TARGET)
 
 %.o: %.cc
-	gcc -c $(CFLAGS) $(LIBS) $(INCLUDE) $*.cc -o $*.o
-	gcc -MM $(CFLAGS) $(LIBS) $(INCLUDE) $*.cc > $*.d
+	gcc -c $(CFLAGS) $(INCLUDE) $*.cc -o $*.o
+	gcc -MM $(CFLAGS) $(INCLUDE) $*.cc > $*.d
 
 clean:
 	@rm -f ../../src/*.o ../../src/*.d
