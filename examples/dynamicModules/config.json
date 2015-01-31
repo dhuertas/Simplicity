@@ -31,6 +31,7 @@
       "god" : "Creator"
     }
   },
+
   // Web server configuration
   "webserver" : {
 
@@ -38,6 +39,9 @@
 
     "threads" : 10,
 
-    "documentRoot" : "www"
+    "documentRoot" : "./www",
+
+    // Connection timeout (in seconds)
+    "timeout" : 1
   }
 }
