@@ -32,5 +32,15 @@
     "modules" : {
       "moduleName" : "moduleClass",
     }
+  },
+
+  // Web server configuration
+  "webserver" : {
+
+    "port" : 8080,
+
+    "threads" : 10,
+
+    "documentRoot" : "www"
   }
 }
