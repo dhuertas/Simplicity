@@ -7,5 +7,6 @@
 #include "Simulation.hh"
 #include "JsonValue.hh"
 #include "Record.hh"
+#include "Utils.hh"
 
 #endif
