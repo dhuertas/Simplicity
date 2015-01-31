@@ -9,6 +9,7 @@
 #include <vector>
 #include <ctime>
 #include <list>
+#include <algorithm>
 
 // integers
 #include <stdint.h>
@@ -33,6 +34,7 @@
 
 #include "JsonValue.hh"
 #include "Thread.hh"
+#include "Utils.hh"
 
 #define SOCK_RD             0
 #define SOCK_WR             1
@@ -42,7 +44,6 @@
 #define QUIT_TIME_OUT       10
 
 #define MAX_LISTEN          30
-#define MAX_THREADS         10
 
 using namespace std;
 
@@ -93,7 +94,7 @@ class WebServer : public Thread {
 
  protected:
 
-  static int status_;
+  static unsigned int count_;
 
   // Mutex
   static pthread_cond_t condSockFdFull_;
@@ -107,7 +108,7 @@ class WebServer : public Thread {
   unsigned short port_;
 
   // Threads
-  unsigned int numberOfThreads_;
+  int numberOfThreads_;
 
   pthread_t *thread_;
   int *threadId_;
@@ -131,7 +132,11 @@ class WebServer : public Thread {
   // Constants
   string documentRoot_;
 
+  string defaultFile_;
+
  public:
+
+  int status_;
 
   // Constructor
   WebServer();
@@ -145,16 +150,42 @@ class WebServer : public Thread {
 
   void *run();
 
-  static void *worker(void *id);
-
-  static void requestHandler(int tid, int clientSockFd);
-
   void setSimulation(Simulation *sim) { sim_ = sim; };
 
   void setStatus(int status) { status_ = status; }
 
   void stop();
 
+  //
+  // Worker methods
+  //
+  static void *worker(void *id);
+
+  int8_t requestHandler(int clientSockFd);
+
+  int8_t handleRequest(int sockfd, request_t *req);
+
+  int8_t handleResponse(int sockfd, request_t *req, response_t *res);
+
+  static int8_t receiveRequest(int sockfd, request_t *req);
+
+  static void clearRequest(request_t *req);
+
+  static void clearResponse(response_t *res);
+
+  static std::string getHeader(std::vector<header_t> *headers, std::string name);
+
+  static void setHeader(std::vector<header_t> *headers, std::string name, std::string value);
+
+  int8_t handleGet(int sockfd, request_t *req, response_t *res);
+
+  int8_t handlePost(int sockfd, request_t *req, response_t *res);
+
+  int8_t handleHead(int sockfd, request_t *req, response_t *res);
+
+  void handleError(int sockfd, request_t *req, response_t *res);
+
+  void sendResponseHeaders(int sockfd, response_t *res);
 };
 
 #endif

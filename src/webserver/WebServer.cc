@@ -1,8 +1,6 @@
 #include "WebServer.hh"
 #include "Simulation.hh"
 
-int WebServer::status_ = WebServer::STOPPED;
-
 // Mutex
 pthread_cond_t WebServer::condSockFdFull_;
 pthread_cond_t WebServer::condSockFdEmpty_;
@@ -15,6 +13,8 @@ volatile int WebServer::clientSockFdRd_ = 0;
 volatile int WebServer::clientSockFdWr_ = 0;
 volatile int WebServer::clientSockFdCount_ = 0;
 
+unsigned int WebServer::count_ = 0;
+
 //------------------------------------------------------------------------------
 WebServer::WebServer() : 
   config_(NULL),
@@ -23,7 +23,8 @@ WebServer::WebServer() :
   thread_(NULL),
   threadId_(NULL),
   serverSockFd_(0),
-  sim_(NULL) {
+  sim_(NULL),
+  status_(STOPPED) {
 
 }
 
@@ -43,27 +44,41 @@ void WebServer::initialize() {
 
   if (numThreads->isNumber() && numThreads->toInteger() > 0) {
     numberOfThreads_ = numThreads->toInteger();
+    INFO("numberOfThreads(%u)", numberOfThreads_);
+  } else {
+    INFO("numberOfThreads[%u]", numberOfThreads_);
   }
-
-  INFO("numberOfThreads(%u)", numberOfThreads_);
 
   JsonValue *port = (*serverConfig)["port"];
   port_ = 8080; // Default port
 
   if (port->isNumber() && port->toInteger() > 0) {
     port_ = port->toInteger();
+    INFO("port(%u)", port_);
+  } else  {
+    INFO("port[%u]", port_);
   }
-
-  INFO("port(%u)", port_);
 
   JsonValue *documentRoot = (*serverConfig)["documentRoot"];
   documentRoot_ = "./www";
 
-  if (documentRoot->isString()) {
+  if (documentRoot != NULL && documentRoot->isString()) {
     documentRoot_ = documentRoot->getString();
+    // TODO remove trailing slash
+    INFO("documentRoot(%s)", documentRoot_.c_str());
+  } else {
+    INFO("documentRoot[%s]", documentRoot_.c_str());
   }
 
-  INFO("documentRoot(%s)", documentRoot_.c_str());
+  JsonValue *defaultFile = (*serverConfig)["defaultFile"];
+  defaultFile_ = "index.html";
+
+  if (defaultFile != NULL && defaultFile->isString()) {
+    defaultFile_ = defaultFile->getString();
+    INFO("defaultFile(%s)", defaultFile_.c_str());
+  } else {
+    INFO("defaultFile[%s]", defaultFile_.c_str());
+  }
 
   serverSockFd_ = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -92,6 +107,8 @@ void WebServer::initialize() {
   clientSockFdRd_ = 0;
   clientSockFdWr_ = 0;
 
+  status_ = RUNNING;
+
   // Wake up threads
   thread_ = (pthread_t *)malloc(sizeof(pthread_t)*numberOfThreads_);
   threadId_ = (int *)malloc(sizeof(int)*numberOfThreads_);
@@ -99,21 +116,27 @@ void WebServer::initialize() {
   // Get as many client sockets as threads
   clientSockFd_ = (int *)malloc(sizeof(int)*numberOfThreads_);
 
-  for (unsigned int i = 0; i < numberOfThreads_; i++) {
+  for (int i = 0; i < numberOfThreads_; i++) {
 
     threadId_[i] = i;
 
-    if (pthread_create(&thread_[i], NULL, worker, &threadId_[i]) != 0) {
+    if (pthread_create(&thread_[i], NULL, worker, this) != 0) {
       //DEBUG("Error creating thread");
     }
     INFO("Spawning worker(%u) thread", i);
   }
-
-  status_ = RUNNING;
 }
 
 //------------------------------------------------------------------------------
 void WebServer::finalize() {
+
+  for (int i = 0; i < numberOfThreads_; i++) {
+    pthread_join(thread_[i], NULL);
+  }
+
+  pthread_mutex_destroy(&mutexSockFd_);
+  pthread_cond_destroy(&condSockFdEmpty_);
+  pthread_cond_destroy(&condSockFdFull_);
 
   free(thread_);
   free(threadId_);
@@ -125,13 +148,6 @@ void *WebServer::run() {
 
   int sockfd;
 
-  fd_set selectSet;
-
-  struct timeval timeout;
-
-  timeout.tv_sec = QUIT_TIME_OUT;
-  timeout.tv_usec = 0;
-
   // Initialize() calls pthread_create, which in turn each thread
   // runs the handler() function. This function has a while loop using
   // the WebServer::quit variable.
@@ -141,47 +157,45 @@ void *WebServer::run() {
 
     sockfd = accept(serverSockFd_, (struct sockaddr *)&clientAddr_, &clientSize_);
 
+    // Server can be stopped while accepting connections, so check here for status
     if (status_ == STOPPED) break;
 
-    FD_ZERO(&selectSet);
-    FD_SET(sockfd, &selectSet);
+    // start of mutex area
+    pthread_mutex_lock(&mutexSockFd_);
 
-    select(sockfd + 1, &selectSet, NULL, NULL, &timeout);
-
-    if (FD_ISSET(sockfd, &selectSet)) {
-
-      // start of mutex area
-      pthread_mutex_lock(&mutexSockFd_);
-
-      while (clientSockFdCount_ > MAX_THREADS) {
-          pthread_cond_wait(&condSockFdFull_, &mutexSockFd_);
-      }
-
-      clientSockFd_[clientSockFdWr_] = sockfd;
-
-      clientSockFdCount_++;
-      clientSockFdWr_++;
-      clientSockFdWr_ = clientSockFdWr_ % MAX_THREADS;
-
-      pthread_cond_broadcast(&condSockFdEmpty_);
-      pthread_mutex_unlock(&mutexSockFd_);
-
-      // end of mutex area
-
+    while (clientSockFdCount_ > numberOfThreads_) {
+        pthread_cond_wait(&condSockFdFull_, &mutexSockFd_);
     }
 
-    FD_CLR(sockfd, &selectSet);
+    clientSockFd_[clientSockFdWr_] = sockfd;
+
+    clientSockFdCount_++;
+    clientSockFdWr_++;
+    clientSockFdWr_ = clientSockFdWr_ % numberOfThreads_;
+
+    pthread_cond_broadcast(&condSockFdEmpty_);
+    pthread_mutex_unlock(&mutexSockFd_);
+
+    // end of mutex area
   }
+
+  finalize();
 
   return 0;
 }
 
 //------------------------------------------------------------------------------
+void WebServer::stop() {
+  setStatus(STOPPED);
+  shutdown(serverSockFd_, 2); 
+}
+
+//------------------------------------------------------------------------------
 void *WebServer::worker(void *args) {
 
-  int *tid, sockFd;
+  WebServer *server = (WebServer *)args;
 
-  tid = (int *)args;
+  int sockFd;
 
   sigset_t sigpipe_mask;
   sigemptyset(&sigpipe_mask);
@@ -192,7 +206,7 @@ void *WebServer::worker(void *args) {
     // DEBUG("pthread_sigmask error");
   }
 
-  while (WebServer::status_ == RUNNING) {
+  while (server->status_ == RUNNING) {
 
     // start of mutex area
     pthread_mutex_lock(&mutexSockFd_);
@@ -204,22 +218,29 @@ void *WebServer::worker(void *args) {
     sockFd = clientSockFd_[clientSockFdRd_];
 
     clientSockFdRd_++;
-    clientSockFdRd_ = clientSockFdRd_ % MAX_THREADS;
+    clientSockFdRd_ = clientSockFdRd_ % server->numberOfThreads_;
     clientSockFdCount_--;
 
     pthread_cond_broadcast(&condSockFdFull_);
     pthread_mutex_unlock(&mutexSockFd_);
 
-    // end of mutex area
-    requestHandler(*tid, sockFd);
+    DEBUG("Received connection %u", count_);
+    count_++;
 
+    // end of mutex area
+    server->requestHandler(sockFd);
+
+    INFO("Closing client socket %u", sockFd);
+    close(sockFd);
   }
+
+  DEBUG("Worker shutdown");
 
   return 0;
 }
 
 //------------------------------------------------------------------------------
-void WebServer::requestHandler(int tid, int clientSockFd) {
+int8_t WebServer::requestHandler(int sockfd) {
 
   int n, m;
 
@@ -227,84 +248,371 @@ void WebServer::requestHandler(int tid, int clientSockFd) {
 
   struct timeval timeout;
 
-  //WebServer::request_t req;
-  //WebServer::response_t resp;
+  WebServer::request_t req;
+  WebServer::response_t resp;
 
-  timeout.tv_sec = 1;
+  timeout.tv_sec = 5;
   timeout.tv_usec = 0;
 
   string conn;
 
   // Wait for data to be received or connection timeout
   FD_ZERO(&selectSet);
-  FD_SET(clientSockFd, &selectSet);
+  FD_SET(sockfd, &selectSet);
 
-  n = select(clientSockFd + 1, &selectSet, NULL, NULL, &timeout);
+  n = select(sockfd + 1, &selectSet, NULL, NULL, &timeout);
 
   if (n < 0) {
-
-    // Client closed connection
-    close(clientSockFd);
-    return;
-
+    DEBUG("Client closed connection");
+    FD_CLR(sockfd, &selectSet);
+    FD_ZERO(&selectSet);
+    return 0;
   } else if (n == 0) {
-
     // timeout
-    close(clientSockFd);
-    return;
-
+    DEBUG("Connection timed out");
+    FD_CLR(sockfd, &selectSet);
+    FD_ZERO(&selectSet);
+    return 1;
   } else {
 
-    if (FD_ISSET(clientSockFd, &selectSet)) {
+    if (FD_ISSET(sockfd, &selectSet)) {
 
-      //m = WebServer::handleRequest(clientSockFd, &req);
-      m = -1;
+      m = handleRequest(sockfd, &req);
 
       if (m < 0) {
-
-        //WebServer::clearRequest(&req);
-        //WebServer::clearResponse(&resp);
-
-        close(clientSockFd);
-        return;
-
+        // handleRequest error
+        clearRequest(&req);
+        return -1;
       }
-
-    }
-  
+    }  
   }
 
-/*
-  conn = WebServer::getRequestHeader(&req, "Connection");
+  conn = getHeader(&req.headers, "Connection");
 
-  if (conn.length() == 0) {
+  if (conn.length() == 0 || conn.compare("close") == 0) {
     // Some http clients (e.g. curl) may not send the Connection header ...
-  } else if (strncasecmp(conn.c_str(), "close", strlen("close")) == 0) {
-
-    m = WebServer::handleResponse(clientSockFd, &req, &resp);
+    // Just handle it as a close connection
+    m = handleResponse(sockfd, &req, &resp);
 
   } else {
-    
+
     // Assume keep-alive connection... but keep it simple for now
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 250;
+    //timeout.tv_sec = 0;
+    //timeout.tv_usec = 250;
 
-    //WebServer::handleResponse(clientSockFd, &req, &resp);
+    m = handleResponse(sockfd, &req, &resp);
   }
-*/
-  send(clientSockFd, "Hi there", strlen("Hi there"), 0);
 
-  //WebServer::clearRequest(&req);
-  //WebServer::clearResponse(&resp);
+  clearRequest(&req);
+  clearResponse(&resp);
 
-  FD_CLR(clientSockFd, &selectSet);
+  FD_CLR(sockfd, &selectSet);
   FD_ZERO(&selectSet);
 
-  close(clientSockFd);
+  return 0;
 }
 
 //------------------------------------------------------------------------------
-void WebServer::stop() {
-  setStatus(STOPPED);
-  shutdown(serverSockFd_, 2); 
+int8_t WebServer::handleRequest(int sockfd, request_t *req) {
+
+  vectstr_t components;
+
+  receiveRequest(sockfd, req);
+
+  components = split(req->uri, '?');
+
+  if (components.size() != 0) {
+    req->resource = components[0];
+
+    if (components.size() == 2) { 
+      req->query = components[1]; 
+    }
+  } else {
+    req->resource = req->uri;
+  }
+
+  // TODO: if Content-length header exists, get the request body part
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+int8_t WebServer::handleResponse(int sockfd, request_t *req, response_t *res) {
+
+  if (req == NULL || res == NULL) {
+    ERROR("Empty parameters");
+    return -1;
+  }
+
+  int8_t ret = -1;
+
+  std::time_t t = std::time(NULL);
+  char date[100];
+
+  res->version = "HTTP/1.1";
+  std::strftime(date, 100, "%c", std::localtime(&t));
+
+  setHeader(&(res->headers), "Date", std::string(date));
+  setHeader(&(res->headers), "Server", "Simplicity web server");
+
+  if (req->method.compare("GET") == 0) {
+    ret = handleGet(sockfd, req, res);
+  } else if (req->method.compare("POST") == 0) {
+    ret = handlePost(sockfd, req, res);
+  } else if (req->method.compare("HEAD") == 0) {
+    ret = handleHead(sockfd, req, res);
+  }
+
+  if (ret < 0) {
+    handleError(sockfd, req, res);
+  }
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+int8_t WebServer::receiveRequest(int sockfd, request_t *req) {
+
+  char chunk;
+
+  int received, i, n;
+
+  std::string line;
+  std::stringstream ss;
+
+  WebServer::header_t header;
+  vectstr_t splitted;
+
+  i = 0;
+  received = 0;
+  n = 0;
+
+  ss.str("");
+
+  // read request byte by byte
+  while ((n = read(sockfd, &chunk, 1)) > 0) {
+
+    ss.put(chunk);
+    received += n;
+
+    // TODO add upper limit!!
+    if (received >= 4 && ss.str().find("\r\n\r\n") != std::string::npos) {
+      break;
+    }
+  }
+
+  // parse raw data
+  while (std::getline(ss, line)) {
+
+    if (i == 0) {
+
+      splitted = split(line, ' ');
+
+      req->method = trim(splitted[0]);
+      req->uri = trim(splitted[1]);
+
+      if (splitted.size() > 2) {
+        req->version = trim(splitted[2]);
+      }
+
+      DEBUG("Request = %s %s %s", 
+        req->method.c_str(),
+        req->uri.c_str(),
+        req->version.c_str());
+
+    } else {
+
+      splitted = split(line, ':');
+
+      if (splitted.size() == 2) {
+        header.name = trim(splitted[0]);
+        header.value = trim(splitted[1]);
+
+        req->headers.push_back(header);
+        DEBUG("Header = %s: %s", header.name.c_str(), header.value.c_str());
+      }
+    }
+
+    i++;
+  }
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+void WebServer::clearRequest(request_t *req) {
+
+  if (req == NULL) {
+    ERROR("Null request");
+    return;
+  }
+
+  req->method.clear();
+  req->uri.clear();
+  req->version.clear();
+  req->resource.clear();
+  req->query.clear();
+  req->headers.clear();
+}
+
+//------------------------------------------------------------------------------
+void WebServer::clearResponse(response_t *res) {
+
+  if (res == NULL) {
+    ERROR("Null response");
+    return;
+  }
+
+  res->statusCode = 0;
+  res->reasonPhrase.clear();
+  res->filePath.clear();
+  res->headers.clear();
+}
+
+//------------------------------------------------------------------------------
+std::string WebServer::getHeader(std::vector<header_t> *headers, std::string name) {
+
+  std::string result("");
+
+  if (headers == NULL) {
+    ERROR("Null headers");
+    return result;
+  }
+
+  std::vector<header_t>::iterator it;
+
+  for (it = headers->begin(); it != headers->end(); ++it) {
+    if (it->name.compare(name) == 0) {
+      result = it->value;
+      break;
+    }
+  }
+
+  return result;
+}
+
+//------------------------------------------------------------------------------
+void WebServer::setHeader(std::vector<header_t> *headers, std::string name, std::string value) {
+
+  header_t header;
+
+  header.name = name;
+  header.value = value;
+
+  headers->push_back(header);
+}
+
+//------------------------------------------------------------------------------
+int8_t WebServer::handleGet(int sockfd, request_t *req, response_t *res) {
+
+  uint32_t size = 0;
+
+  std::string conn;
+  std::string file;
+
+  std::ifstream infile;
+  std::stringstream ss;
+
+  ss << WebServer::documentRoot_;
+
+  if (req->resource.at(req->resource.length()-1) == '/') {
+    ss << req->resource << defaultFile_;
+  } else {
+    ss << req->resource;
+  }
+
+  file = ss.str();
+  infile.open(file.c_str());
+
+  ss.str("");
+
+  if (infile) {
+    res->statusCode = 200;
+    res->reasonPhrase = "OK";
+
+    infile.seekg(0, std::ifstream::end);
+    size = infile.tellg();
+
+    ss << size;
+    setHeader(&(res->headers), "Length", ss.str());
+
+    conn = getHeader(&(req->headers), "Connection");
+    transform(conn.begin(), conn.end(), conn.begin(), ::tolower);
+
+    setHeader(&(res->headers), "Connection", conn.compare("close") == 0 ? "close" : "keep-alive");
+
+    // send headers
+    sendResponseHeaders(sockfd, res);
+
+    // send file
+    char buf[1024];
+    memset(buf, 0, sizeof(buf));
+    FILE *fs = fopen(file.c_str(), "r");
+    if (fs == NULL) {
+      ERROR("Error opening file %s", file.c_str());
+      return -1;
+    }
+
+    size = 0;
+    while ((size = fread(buf, sizeof(char), 1024, fs)) > 0) {
+      if (send(sockfd, buf, size, 0) < 0) {
+        ERROR("Failed to send file");
+        break;
+      }
+      DEBUG("Sent(%u)", size);
+    }
+
+    fclose(fs);
+
+  } else {
+    res->statusCode = 404;
+    res->reasonPhrase = "Not found";
+    DEBUG("File %s not found", file.c_str());
+    setHeader(&(res->headers), "Connection", "close");
+    // send headers
+    sendResponseHeaders(sockfd, res);
+  }
+
+  infile.close();
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+int8_t WebServer::handlePost(int sockfd, request_t *req, response_t *res) {
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+int8_t WebServer::handleHead(int sockfd, request_t *req, response_t *res) {
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+void WebServer::handleError(int sockfd, request_t *req, response_t *res) {
+
+}
+
+//------------------------------------------------------------------------------
+void WebServer::sendResponseHeaders(int sockfd, response_t *res) {
+
+  uint32_t w = 0;
+
+  std::stringstream ss;
+  std::vector<header_t>::iterator it;
+
+  ss << res->version      << " " 
+     << res->statusCode   << " " 
+     << res->reasonPhrase << "\r\n";
+
+  for (it = res->headers.begin(); it != res->headers.end(); ++it) {
+    ss << it->name << ": " << it->value << "\r\n";
+  }
+
+  ss << "\r\n";
+
+  if ((w = send(sockfd, ss.str().c_str(), ss.str().length(), 0)) != ss.str().length()) {
+    ERROR("Error sending response headers");
+  }
 }
