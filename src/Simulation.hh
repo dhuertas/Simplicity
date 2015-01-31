@@ -33,7 +33,7 @@ class Simulation : public Object {
 
   Time currentTime_;
 
-  pthread_t serverThread_;
+  WebServer *server_;
 
  public:
 

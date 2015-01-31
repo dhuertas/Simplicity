@@ -16,23 +16,6 @@ volatile int WebServer::clientSockFdWr_ = 0;
 volatile int WebServer::clientSockFdCount_ = 0;
 
 //------------------------------------------------------------------------------
-void *startWebServer(void *sim) {
-    
-    WebServer *server = new WebServer();
-    
-    server->setSimulation((Simulation *)sim);
-    
-    server->start();
-    
-    // Server should poll simulation state in order to close
-    server->finalize();
-    
-    delete server;
-    
-    return 0;
-}
-
-//------------------------------------------------------------------------------
 WebServer::WebServer() : 
   config_(NULL),
   port_(8080),
@@ -123,7 +106,7 @@ void WebServer::initialize() {
     if (pthread_create(&thread_[i], NULL, worker, &threadId_[i]) != 0) {
       //DEBUG("Error creating thread");
     }
-    INFO("Spawning worker(%u) thread\n", i);
+    INFO("Spawning worker(%u) thread", i);
   }
 
   status_ = RUNNING;
@@ -138,20 +121,7 @@ void WebServer::finalize() {
 }
 
 //------------------------------------------------------------------------------
-void WebServer::start() {
-
-  // Initialize() calls pthread_create, which in turn each thread
-  // runs the handler() function. This function has a while loop using
-  // the WebServer::quit variable.
-  initialize();
-
-  run();
-
-  pthread_exit(NULL);
-
-}
-
-void WebServer::run() {
+void *WebServer::run() {
 
   int sockfd;
 
@@ -162,11 +132,16 @@ void WebServer::run() {
   timeout.tv_sec = QUIT_TIME_OUT;
   timeout.tv_usec = 0;
 
+  // Initialize() calls pthread_create, which in turn each thread
+  // runs the handler() function. This function has a while loop using
+  // the WebServer::quit variable.
+  initialize();
+
   while (status_) {
 
     sockfd = accept(serverSockFd_, (struct sockaddr *)&clientAddr_, &clientSize_);
 
-    printf("Received request\n");
+    if (status_ == STOPPED) break;
 
     FD_ZERO(&selectSet);
     FD_SET(sockfd, &selectSet);
@@ -198,6 +173,7 @@ void WebServer::run() {
     FD_CLR(sockfd, &selectSet);
   }
 
+  return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -216,7 +192,7 @@ void *WebServer::worker(void *args) {
     // DEBUG("pthread_sigmask error");
   }
 
-  while (WebServer::status_ > 0) {
+  while (WebServer::status_ == RUNNING) {
 
     // start of mutex area
     pthread_mutex_lock(&mutexSockFd_);
@@ -327,4 +303,8 @@ void WebServer::requestHandler(int tid, int clientSockFd) {
   close(clientSockFd);
 }
 
-
+//------------------------------------------------------------------------------
+void WebServer::stop() {
+  setStatus(STOPPED);
+  shutdown(serverSockFd_, 2); 
+}

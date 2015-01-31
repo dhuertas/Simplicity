@@ -95,13 +95,15 @@ int Simulation::configure(const char *fileName) {
   // Domain
   //
   JsonValue *domainConfig = (*config_)["domain"];
-  if (domainConfig->isNull() || ! domainConfig->isObject()) {
-    INFO("Domain must be a valid JSON object");
+  if (domainConfig == NULL || domainConfig->isNull() || ! domainConfig->isObject()) {
+    ERROR("Domain must be a valid JSON object");
+    return -1;
   }
 
   JsonValue *modulesConfig = (*domainConfig)["modules"];
-  if (modulesConfig->isNull() || ! modulesConfig->isObject()) {
-    INFO("Missing modules in domain");
+  if (modulesConfig == NULL || modulesConfig->isNull() || ! modulesConfig->isObject()) {
+    ERROR("Missing modules in domain");
+    return -1;
   }
 
   std::vector<JsonObjectPair>::iterator it;
@@ -127,9 +129,19 @@ int Simulation::configure(const char *fileName) {
   //
   // Web server
   //
-  INFO("Spawning web server");
-  if (pthread_create(&serverThread_, NULL, startWebServer, this) != 0) {
-      ERROR("Unable to spawn server thread");
+  JsonValue *webServerConfig = (*config_)["webserver"];
+  if (webServerConfig != NULL && ! webServerConfig->isNull()) {
+    INFO("Spawning web server");
+    server_ = new WebServer();
+
+    if (server_ == NULL) {
+      ERROR("Unable to spawn web server");
+      return -1;
+    }
+
+    server_->setSimulation(this);
+
+    server_->start();
   }
 
   return 0;
@@ -202,11 +214,7 @@ void Simulation::run() {
 //------------------------------------------------------------------------------
 void Simulation::finalize() {
 
-  int retval;
-
   domain_->finalize();
-
-  pthread_join(serverThread_, (void**)&retval);
 
   reset();
 }
@@ -230,6 +238,14 @@ void Simulation::reset() {
     INFO("Removing simulation domain");
     delete domain_;
     domain_ = NULL;
+  }
+
+  if (server_ != NULL) {
+    server_->stop();
+    INFO("Removing web server");
+    server_->join();
+    delete server_;
+    server_ = NULL;
   }
 }
 

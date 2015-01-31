@@ -20,9 +20,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-// threading
-#include <pthread.h>
-
 // file
 #include <unistd.h>
 #include <fcntl.h>
@@ -35,6 +32,7 @@
 #include <signal.h>
 
 #include "JsonValue.hh"
+#include "Thread.hh"
 
 #define SOCK_RD             0
 #define SOCK_WR             1
@@ -50,7 +48,7 @@ using namespace std;
 
 class Simulation;
 
-class WebServer {
+class WebServer : public Thread {
 
  public:
 
@@ -145,9 +143,7 @@ class WebServer {
 
   void finalize();
 
-  void start();
-
-  void run();
+  void *run();
 
   static void *worker(void *id);
 
@@ -155,11 +151,10 @@ class WebServer {
 
   void setSimulation(Simulation *sim) { sim_ = sim; };
 
-};
+  void setStatus(int status) { status_ = status; }
 
-//
-// This function gets called in a pthread_create
-//
-void *startWebServer(void *sim);
+  void stop();
+
+};
 
 #endif

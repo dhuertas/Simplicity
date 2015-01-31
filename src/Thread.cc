@@ -89,6 +89,6 @@ void *Thread::join() {
 }
 
 // -----------------------------------------------------------------------------
-void Thread::setCompleted(){
+void Thread::setCompleted() {
   // completion handled by pthread_join()
 }

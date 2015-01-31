@@ -39,7 +39,7 @@ class Thread {
 
   Thread(bool isDetached = false);
 
-  ~Thread();
+  virtual ~Thread();
 
   void start();
 
