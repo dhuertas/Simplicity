@@ -127,7 +127,7 @@ string JsonReader::decodeKey() {
   keyBuffer[keyLength] = '\0';
 
   string key(keyBuffer);
-  // TODO scape invalid characters
+  // TODO escape invalid characters
   delete[] keyBuffer;
 
   current_ = keyEnd;
@@ -151,7 +151,7 @@ JsonObject *JsonReader::decodeObject() {
 
     // first check whether it is empty ...
     if (buffer_[current_] == '}') {
-      DEBUG("Empty object");
+      DEBUG("Empty value");
       break;
     }
 
