@@ -164,7 +164,6 @@ uint32_t Buffer::append(uint8_t *buf, uint32_t length) {
 //------------------------------------------------------------------------------
 uint32_t Buffer::append(char *buf, uint32_t length) {
 
-  DEBUG("Buffer(%s)", raw_);
   return append((uint8_t *)buf, length);
 }
 
