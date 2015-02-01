@@ -18,12 +18,12 @@ unsigned int WebServer::count_ = 0;
 //------------------------------------------------------------------------------
 WebServer::WebServer() : 
   config_(NULL),
-  port_(8080),
-  numberOfThreads_(10),
   thread_(NULL),
   threadId_(NULL),
   serverSockFd_(0),
   sim_(NULL),
+  port_(8080),
+  numberOfThreads_(0),
   status_(STOPPED) {
 
 }
@@ -40,17 +40,17 @@ void WebServer::initialize() {
   }
 
   JsonValue *numThreads = (*serverConfig)["threads"];
-  numberOfThreads_ = 10; // Default number of threads
+  numberOfThreads_ = 4;
 
   if (numThreads->isNumber() && numThreads->toInteger() > 0) {
     numberOfThreads_ = numThreads->toInteger();
-    INFO("numberOfThreads(%u)", numberOfThreads_);
+    INFO("numberOfThreads(%d)", numberOfThreads_);
   } else {
-    INFO("numberOfThreads[%u]", numberOfThreads_);
+    INFO("numberOfThreads[%d]", numberOfThreads_);
   }
 
   JsonValue *port = (*serverConfig)["port"];
-  port_ = 8080; // Default port
+  port_ = 8080;
 
   if (port->isNumber() && port->toInteger() > 0) {
     port_ = port->toInteger();
@@ -63,8 +63,8 @@ void WebServer::initialize() {
   documentRoot_ = "./www";
 
   if (documentRoot != NULL && documentRoot->isString()) {
-    documentRoot_ = documentRoot->getString();
     // TODO remove trailing slash
+    documentRoot_ = documentRoot->getString();
     INFO("documentRoot(%s)", documentRoot_.c_str());
   } else {
     INFO("documentRoot[%s]", documentRoot_.c_str());
@@ -78,6 +78,16 @@ void WebServer::initialize() {
     INFO("defaultFile(%s)", defaultFile_.c_str());
   } else {
     INFO("defaultFile[%s]", defaultFile_.c_str());
+  }
+
+  JsonValue *timeout = (*serverConfig)["defaultFile"];
+  timeout_ = 5;
+
+  if (timeout != NULL && timeout->isString()) {
+    timeout_ = timeout->toInteger();
+    INFO("timeout(%d)", timeout_);
+  } else {
+    INFO("timeout[%d]", timeout_);
   }
 
   serverSockFd_ = socket(PF_INET, SOCK_STREAM, 0);
@@ -251,7 +261,7 @@ int8_t WebServer::requestHandler(int sockfd) {
   WebServer::request_t req;
   WebServer::response_t resp;
 
-  timeout.tv_sec = 5;
+  timeout.tv_sec = timeout_;
   timeout.tv_usec = 0;
 
   string conn;
@@ -507,11 +517,15 @@ int8_t WebServer::handleGet(int sockfd, request_t *req, response_t *res) {
 
   uint32_t size = 0;
 
+  uint32_t w = 0;
+
   std::string conn;
   std::string file;
 
   std::ifstream infile;
   std::stringstream ss;
+
+  Buffer buf;
 
   ss << WebServer::documentRoot_;
 
@@ -527,6 +541,7 @@ int8_t WebServer::handleGet(int sockfd, request_t *req, response_t *res) {
   ss.str("");
 
   if (infile) {
+
     res->statusCode = 200;
     res->reasonPhrase = "OK";
 
@@ -540,37 +555,45 @@ int8_t WebServer::handleGet(int sockfd, request_t *req, response_t *res) {
     transform(conn.begin(), conn.end(), conn.begin(), ::tolower);
 
     setHeader(&(res->headers), "Connection", conn.compare("close") == 0 ? "close" : "keep-alive");
+    setHeader(&(res->headers), "Content-type", "text/html");
 
-    // send headers
-    sendResponseHeaders(sockfd, res);
+    appendResponseHeaders(res, &buf);
 
-    // send file
-    char buf[1024];
-    memset(buf, 0, sizeof(buf));
+    // read and append file
     FILE *fs = fopen(file.c_str(), "r");
     if (fs == NULL) {
       ERROR("Error opening file %s", file.c_str());
       return -1;
     }
 
-    size = 0;
-    while ((size = fread(buf, sizeof(char), 1024, fs)) > 0) {
-      if (send(sockfd, buf, size, 0) < 0) {
-        ERROR("Failed to send file");
-        break;
-      }
-      DEBUG("Sent(%u)", size);
+    char tmp[1024];
+    while ((size = fread(tmp, sizeof(char), 1024, fs)) > 0) {
+      buf.append(tmp, size);
+    }
+
+    if ((w = send(sockfd, buf.getRaw(), buf.length(), 0)) != buf.length()) {
+      ERROR("Error sending response");
     }
 
     fclose(fs);
 
   } else {
+
     res->statusCode = 404;
     res->reasonPhrase = "Not found";
+
     DEBUG("File %s not found", file.c_str());
-    setHeader(&(res->headers), "Connection", "close");
-    // send headers
-    sendResponseHeaders(sockfd, res);
+
+    conn = getHeader(&(req->headers), "Connection");
+    transform(conn.begin(), conn.end(), conn.begin(), ::tolower);
+
+    setHeader(&(res->headers), "Connection", conn.compare("close") == 0 ? "close" : "keep-alive");
+
+    appendResponseHeaders(res, &buf);
+
+    if ((w = send(sockfd, buf.getRaw(), buf.length(), 0)) != buf.length()) {
+      ERROR("Error sending response");
+    }
   }
 
   infile.close();
@@ -592,27 +615,54 @@ int8_t WebServer::handleHead(int sockfd, request_t *req, response_t *res) {
 //------------------------------------------------------------------------------
 void WebServer::handleError(int sockfd, request_t *req, response_t *res) {
 
-}
-
-//------------------------------------------------------------------------------
-void WebServer::sendResponseHeaders(int sockfd, response_t *res) {
+  if (res == NULL) {
+    ERROR("Null response");
+    return;
+  }
 
   uint32_t w = 0;
 
-  std::stringstream ss;
-  std::vector<header_t>::iterator it;
+  Buffer buf;
 
-  ss << res->version      << " " 
-     << res->statusCode   << " " 
-     << res->reasonPhrase << "\r\n";
+  clearResponse(res);
 
-  for (it = res->headers.begin(); it != res->headers.end(); ++it) {
-    ss << it->name << ": " << it->value << "\r\n";
-  }
+  res->statusCode = 500;
+  res->reasonPhrase = "Internal Server Error";
 
-  ss << "\r\n";
+  setHeader(&(res->headers), "Connection", "close");
 
-  if ((w = send(sockfd, ss.str().c_str(), ss.str().length(), 0)) != ss.str().length()) {
+  appendResponseHeaders(res, &buf);
+
+  if ((w = send(sockfd, buf.getRaw(), buf.length(), 0)) != buf.length()) {
     ERROR("Error sending response headers");
   }
+}
+
+//------------------------------------------------------------------------------
+void WebServer::appendResponseHeaders(response_t *res, Buffer *buf) {
+
+  if (buf == NULL) {
+    ERROR("Null buffer");
+  }
+
+  char codeStr[4];
+  std::vector<header_t>::iterator it;
+
+  snprintf(codeStr, 4, "%hu", res->statusCode);
+
+  buf->append(res->version.c_str(), res->version.length());
+  buf->append(" ", 1);
+  buf->append(codeStr, 3);
+  buf->append(" ", 1);
+  buf->append(res->reasonPhrase.c_str(), res->reasonPhrase.length());
+  buf->append("\r\n", 2);
+
+  for (it = res->headers.begin(); it != res->headers.end(); ++it) {
+    buf->append(it->name.c_str(), it->name.length());
+    buf->append(": ", 2);
+    buf->append(it->value.c_str(), it->value.length());
+    buf->append("\r\n", 2);
+  }
+
+  buf->append("\r\n", 2);
 }

@@ -33,6 +33,7 @@
 #include <signal.h>
 
 #include "JsonValue.hh"
+#include "Buffer.hh"
 #include "Thread.hh"
 #include "Utils.hh"
 
@@ -44,6 +45,7 @@
 #define QUIT_TIME_OUT       10
 
 #define MAX_LISTEN          30
+#define BUFFER_SIZE         2048
 
 using namespace std;
 
@@ -104,12 +106,6 @@ class WebServer : public Thread {
 
   JsonValue *config_;
 
-  // Server port
-  unsigned short port_;
-
-  // Threads
-  int numberOfThreads_;
-
   pthread_t *thread_;
   int *threadId_;
 
@@ -129,7 +125,13 @@ class WebServer : public Thread {
 
   Simulation *sim_;
 
-  // Constants
+  // Parameters
+  unsigned short port_;
+
+  int timeout_;
+
+  int numberOfThreads_;
+
   string documentRoot_;
 
   string defaultFile_;
@@ -185,7 +187,7 @@ class WebServer : public Thread {
 
   void handleError(int sockfd, request_t *req, response_t *res);
 
-  void sendResponseHeaders(int sockfd, response_t *res);
+  void appendResponseHeaders(response_t *res, Buffer *buf);
 };
 
 #endif
