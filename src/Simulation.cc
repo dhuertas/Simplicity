@@ -48,14 +48,14 @@ int Simulation::configure(const char *fileName) {
   //
   // Globals
   //
-  JsonValue *globalConfig = (*config_)["global"];
-  if (globalConfig->isNull() || ! globalConfig->isObject()) {
+  JsonValue *globalConfig = config_->getValue("global");
+  if (globalConfig == NULL or ! globalConfig->isObject()) {
     ERROR("Globals must be a valid JSON object");
     return -1;
   }
 
   // Global.logFileName
-  JsonValue *logFileName = (*globalConfig)["logFileName"];
+  JsonValue *logFileName = globalConfig->getValue("logFileName");
   if (logFileName != NULL) {
     if (! logFileName->isString()) {
       ERROR("Log file name must be a string");
@@ -65,24 +65,24 @@ int Simulation::configure(const char *fileName) {
   } 
 
   // Global.timeScaleExp
-  JsonValue *timeScaleExp = (*globalConfig)["timeScaleExp"];
-  if ( ! timeScaleExp->isNumber()) {
+  JsonValue *timeScaleExp = globalConfig->getValue("timeScaleExp");
+  if (timeScaleExp == NULL or ! timeScaleExp->isNumber()) {
     ERROR("Time scale exponent must be a number");
     return -1;
   }
   Time::setScaleExp(timeScaleExp->toInteger());
 
   // Gobal.timeLimit
-  JsonValue *timeLimit = (*globalConfig)["timeLimit"];
-  if ( ! timeLimit->isNumber()) {
+  JsonValue *timeLimit = globalConfig->getValue("timeLimit");
+  if (timeLimit == NULL or ! timeLimit->isNumber()) {
     ERROR("Time limit must be a number");
     return -1;
   }
   timeLimit_.setTime(timeLimit->toDouble());
 
   // Global.timeStart
-  JsonValue *timeStart = (*globalConfig)["timeStart"];
-  if ( ! globalConfig or ! globalConfig->isNumber()) {
+  JsonValue *timeStart = globalConfig->getValue("timeStart");
+  if (timeStart == NULL or ! timeStart->isNumber()) {
     INFO("Start time: 0 (default)");
     timeStart_ = Time(0);
   } else {
@@ -94,14 +94,14 @@ int Simulation::configure(const char *fileName) {
   //
   // Domain
   //
-  JsonValue *domainConfig = (*config_)["domain"];
-  if (domainConfig == NULL || domainConfig->isNull() || ! domainConfig->isObject()) {
+  JsonValue *domainConfig = config_->getValue("domain");
+  if (domainConfig == NULL or domainConfig->isNull() or ! domainConfig->isObject()) {
     ERROR("Domain must be a valid JSON object");
     return -1;
   }
 
-  JsonValue *modulesConfig = (*domainConfig)["modules"];
-  if (modulesConfig == NULL || modulesConfig->isNull() || ! modulesConfig->isObject()) {
+  JsonValue *modulesConfig = domainConfig->getValue("modules");
+  if (modulesConfig == NULL or modulesConfig->isNull() or ! modulesConfig->isObject()) {
     ERROR("Missing modules in domain");
     return -1;
   }
@@ -129,8 +129,8 @@ int Simulation::configure(const char *fileName) {
   //
   // Web server
   //
-  JsonValue *webServerConfig = (*config_)["webserver"];
-  if (webServerConfig != NULL && ! webServerConfig->isNull()) {
+  JsonValue *webServerConfig = config_->getValue("webserver");
+  if (webServerConfig != NULL and ! webServerConfig->isNull()) {
     INFO("Spawning web server");
     server_ = new WebServer();
 
@@ -241,8 +241,8 @@ void Simulation::reset() {
   }
 
   if (server_ != NULL) {
-    server_->stop();
-    INFO("Removing web server");
+    //server_->stop();
+    //INFO("Removing web server");
     server_->join();
     delete server_;
     server_ = NULL;
