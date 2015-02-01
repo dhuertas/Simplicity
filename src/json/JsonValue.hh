@@ -67,6 +67,8 @@ class JsonValue : public Object {
 
   virtual vector<JsonObjectPair>::iterator end() { return  elements_.end(); }
 
+  JsonValue* getValue(const char *key);
+
   // Operator[] overload to access JSON Objects
   JsonValue* operator[](const char *key);
 
