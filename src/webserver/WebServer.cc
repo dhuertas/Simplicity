@@ -33,13 +33,13 @@ void WebServer::initialize() {
 
   config_ = sim_->getConfig();
 
-  JsonValue *serverConfig = (*config_)["webserver"];
+  JsonValue *serverConfig = config_->getValue("webserver");
   if (serverConfig->isNull() || ! serverConfig->isObject()) {
     ERROR("Web server must be a valid JSON object");
     return;
   }
 
-  JsonValue *numThreads = (*serverConfig)["threads"];
+  JsonValue *numThreads = serverConfig->getValue("threads");
   numberOfThreads_ = 4;
 
   if (numThreads->isNumber() && numThreads->toInteger() > 0) {
@@ -49,7 +49,7 @@ void WebServer::initialize() {
     INFO("numberOfThreads[%d]", numberOfThreads_);
   }
 
-  JsonValue *port = (*serverConfig)["port"];
+  JsonValue *port = serverConfig->getValue("port");
   port_ = 8080;
 
   if (port->isNumber() && port->toInteger() > 0) {
@@ -59,7 +59,7 @@ void WebServer::initialize() {
     INFO("port[%u]", port_);
   }
 
-  JsonValue *documentRoot = (*serverConfig)["documentRoot"];
+  JsonValue *documentRoot = serverConfig->getValue("documentRoot");
   documentRoot_ = "./www";
 
   if (documentRoot != NULL && documentRoot->isString()) {
@@ -70,7 +70,7 @@ void WebServer::initialize() {
     INFO("documentRoot[%s]", documentRoot_.c_str());
   }
 
-  JsonValue *defaultFile = (*serverConfig)["defaultFile"];
+  JsonValue *defaultFile = serverConfig->getValue("defaultFile");
   defaultFile_ = "index.html";
 
   if (defaultFile != NULL && defaultFile->isString()) {
@@ -80,7 +80,7 @@ void WebServer::initialize() {
     INFO("defaultFile[%s]", defaultFile_.c_str());
   }
 
-  JsonValue *timeout = (*serverConfig)["defaultFile"];
+  JsonValue *timeout = serverConfig->getValue("timeout");
   timeout_ = 5;
 
   if (timeout != NULL && timeout->isString()) {
