@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include <cstring>
+
 #include "Log.hh"
 
 class Object {
