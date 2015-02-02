@@ -23,10 +23,15 @@ Simulation::~Simulation() {
 }
 
 //------------------------------------------------------------------------------
-int Simulation::configure(const char *fileName) {
+int Simulation::configure(const char *fileName, const char *path) {
 
   if (fileName == NULL) {
     ERROR("Missing file name");
+    return -1;
+  }
+
+  if (path == NULL) {
+    ERROR("Missing path");
     return -1;
   }
 
@@ -48,11 +53,14 @@ int Simulation::configure(const char *fileName) {
   //
   // Globals
   //
-  JsonValue *globalConfig = config_->getValue("global");
+  JsonObject *globalConfig = (JsonObject *)config_->getValue("global");
   if (globalConfig == NULL or ! globalConfig->isObject()) {
-    ERROR("Globals must be a valid JSON object");
+    ERROR("Global must be a valid JSON object");
     return -1;
   }
+
+  // Set Global.path so it can be accessed later
+  globalConfig->push("path", new JsonString(path));
 
   // Global.logFileName
   JsonValue *logFileName = globalConfig->getValue("logFileName");
@@ -94,7 +102,7 @@ int Simulation::configure(const char *fileName) {
   //
   // Domain
   //
-  JsonValue *domainConfig = config_->getValue("domain");
+  JsonObject *domainConfig = (JsonObject *)config_->getValue("domain");
   if (domainConfig == NULL or domainConfig->isNull() or ! domainConfig->isObject()) {
     ERROR("Domain must be a valid JSON object");
     return -1;
@@ -129,8 +137,8 @@ int Simulation::configure(const char *fileName) {
   //
   // Web server
   //
-  JsonValue *webServerConfig = config_->getValue("webserver");
-  if (webServerConfig != NULL and ! webServerConfig->isNull()) {
+  JsonObject *webServerConfig = (JsonObject *)config_->getValue("webserver");
+  if (webServerConfig != NULL and webServerConfig->isObject()) {
     INFO("Spawning web server");
     server_ = new WebServer();
 

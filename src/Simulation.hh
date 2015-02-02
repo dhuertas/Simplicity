@@ -46,7 +46,7 @@ class Simulation : public Object {
     return &instance;
   }
 
-  int configure(const char *fileName);
+  int configure(const char *fileName, const char *path);
 
   void run();
 
