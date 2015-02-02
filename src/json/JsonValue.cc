@@ -67,3 +67,19 @@ bool JsonValue::toBoolean() {
 
   return this->toBoolean();
 }
+
+//------------------------------------------------------------------------------
+JsonValue *JsonValue::getValue(const char *key) {
+
+  if (key == NULL) {
+    DEBUG("Null key");
+    return NULL;
+  }
+
+  if ( ! this->isObject()) {
+    DEBUG("Not an object %s", this->toString().c_str());
+    return NULL;
+  }
+
+  return (*this)[key];
+}
