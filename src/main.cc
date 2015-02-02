@@ -10,6 +10,7 @@
 typedef struct Options {
   int verbosity;
   char *configFile;
+  char *path;
 } options_t;
 
 static const struct option longOpts[] = {
@@ -81,6 +82,7 @@ int main(int argc, char *argv[]) {
   // Get options from command line
   options.verbosity = 0;
   options.configFile = NULL;
+  options.path = argv[0];
 
   getOptions(argc, argv, &options);
 
@@ -98,7 +100,9 @@ int main(int argc, char *argv[]) {
   // Configure simulation
   int configResult = 0;
 
-  configResult = sim->configure(options.configFile);
+  configResult = sim->configure(
+    options.configFile,
+    options.path);
 
   // Configuration should go flawless
   if (configResult != 0) {
