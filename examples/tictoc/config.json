@@ -11,10 +11,10 @@
     //  -6 = us
     //  -9 = ns
     // -12 = ps
-    "timeScaleExp" : -3.0
+    "timeScaleExp" : -3.0,
 
     // Log simulation messages to this file
-    //"logFileName" : "sim.out"
+    "logFileName" : "sim.out"
   },
 
   // Domain configuration
@@ -31,18 +31,5 @@
       "tic" : "Tictoc",
       "toc" : "Tictoc"
     }
-  },
-
-  // Web server configuration
-  "webserver" : {
-
-    "port" : 8080,
-
-    "threads" : 10,
-
-    "documentRoot" : "./www",
-
-    // Connection timeout (in seconds)
-    "timeout" : 1
   }
 }
