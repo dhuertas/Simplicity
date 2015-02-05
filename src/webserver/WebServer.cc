@@ -1,5 +1,6 @@
 #include "WebServer.hh"
 #include "Simulation.hh"
+#include "JsonReader.hh"
 
 // Mutex
 pthread_cond_t WebServer::condSockFdFull_;
@@ -29,17 +30,32 @@ WebServer::WebServer() :
 }
 
 //------------------------------------------------------------------------------
-void WebServer::initialize() {
+int WebServer::configure(const char *fileName, const char *path) {
 
-  config_ = sim_->getConfig();
-
-  JsonValue *serverConfig = config_->getValue("webserver");
-  if (serverConfig->isNull() || ! serverConfig->isObject()) {
-    ERROR("Web server must be a valid JSON object");
-    return;
+  if (fileName == NULL) {
+    ERROR("Missing file name");
+    return -1;
   }
 
-  JsonValue *numThreads = serverConfig->getValue("threads");
+  if (path == NULL) {
+    ERROR("Missing path");
+    return -1;
+  }
+
+  JsonReader reader;
+  JsonValue *config_ = NULL;
+
+  if ( ! reader.parse("server.json", &config_)) {
+    ERROR("Unable to parse server configuration file");
+    return -1;
+  }
+
+  if (config_->isNull() || ! config_->isObject()) {
+    ERROR("Web server must be a valid JSON object");
+    return -1;
+  }
+
+  JsonValue *numThreads = config_->getValue("threads");
   numberOfThreads_ = 4;
 
   if (numThreads->isNumber() && numThreads->toInteger() > 0) {
@@ -49,7 +65,7 @@ void WebServer::initialize() {
     INFO("numberOfThreads[%d]", numberOfThreads_);
   }
 
-  JsonValue *port = serverConfig->getValue("port");
+  JsonValue *port = config_->getValue("port");
   port_ = 8080;
 
   if (port->isNumber() && port->toInteger() > 0) {
@@ -59,7 +75,7 @@ void WebServer::initialize() {
     INFO("port[%u]", port_);
   }
 
-  JsonValue *documentRoot = serverConfig->getValue("documentRoot");
+  JsonValue *documentRoot = config_->getValue("documentRoot");
   documentRoot_ = "./www";
 
   if (documentRoot != NULL && documentRoot->isString()) {
@@ -70,7 +86,7 @@ void WebServer::initialize() {
     INFO("documentRoot[%s]", documentRoot_.c_str());
   }
 
-  JsonValue *defaultFile = serverConfig->getValue("defaultFile");
+  JsonValue *defaultFile = config_->getValue("defaultFile");
   defaultFile_ = "index.html";
 
   if (defaultFile != NULL && defaultFile->isString()) {
@@ -80,15 +96,21 @@ void WebServer::initialize() {
     INFO("defaultFile[%s]", defaultFile_.c_str());
   }
 
-  JsonValue *timeout = serverConfig->getValue("timeout");
+  JsonValue *timeout = config_->getValue("timeout");
   timeout_ = 5;
 
-  if (timeout != NULL && timeout->isString()) {
+  if (timeout != NULL && timeout->isNumber()) {
     timeout_ = timeout->toInteger();
     INFO("timeout(%d)", timeout_);
   } else {
     INFO("timeout[%d]", timeout_);
   }
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+void WebServer::initialize() {
 
   serverSockFd_ = socket(PF_INET, SOCK_STREAM, 0);
 

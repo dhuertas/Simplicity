@@ -23,7 +23,7 @@ Simulation::~Simulation() {
 }
 
 //------------------------------------------------------------------------------
-int Simulation::configure(const char *fileName, const char *path, bool web) {
+int Simulation::configure(const char *fileName, const char *path) {
 
   if (fileName == NULL) {
     ERROR("Missing file name");
@@ -124,7 +124,7 @@ int Simulation::configure(const char *fileName, const char *path, bool web) {
     }
   }
 
-  JsonValue *initFileName = (*domainConfig)["initFileName"];
+  JsonValue *initFileName = domainConfig->getValue("initFileName");
 
   if ( ! initFileName->isString()) {
     ERROR("Expected initialization file name");
@@ -133,24 +133,6 @@ int Simulation::configure(const char *fileName, const char *path, bool web) {
 
   INFO("Initializing domain");
   domain_->initialize(initFileName->toString());
-
-  //
-  // Web server
-  //
-  JsonObject *webServerConfig = (JsonObject *)config_->getValue("webserver");
-  if (web && webServerConfig != NULL and webServerConfig->isObject()) {
-    INFO("Spawning web server");
-    server_ = new WebServer();
-
-    if (server_ == NULL) {
-      ERROR("Unable to spawn web server");
-      return -1;
-    }
-
-    server_->setSimulation(this);
-
-    server_->start();
-  }
 
   return 0;
 }
@@ -225,6 +207,7 @@ void Simulation::finalize() {
   domain_->finalize();
 
   reset();
+
 }
 
 //------------------------------------------------------------------------------
@@ -248,13 +231,6 @@ void Simulation::reset() {
     domain_ = NULL;
   }
 
-  if (server_ != NULL) {
-    //server_->stop();
-    //INFO("Removing web server");
-    server_->join();
-    delete server_;
-    server_ = NULL;
-  }
 }
 
 //------------------------------------------------------------------------------

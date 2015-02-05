@@ -6,6 +6,8 @@
 
 #include "Log.hh"
 #include "Simulation.hh"
+#include "JsonReader.hh"
+#include "JsonValue.hh"
 
 typedef struct Options {
   int verbosity;
@@ -71,7 +73,7 @@ int getOptions(int argc, char *argv[], options_t *options) {
         break;
       default:
         abort();
-      }
+    }
   }
 
   for (index = optind; index < argc; index++)
@@ -104,30 +106,47 @@ int main(int argc, char *argv[]) {
   // Set log level
   Logger::setLevel(Logger::LOG_DEBUG);
 
-  // Configure simulation
   int configResult = 0;
 
-  // Configuration should go flawless
-  if (configResult != 0) {
-    printf("Error(%d): unable to configure simulation\n", configResult);
-    delete sim;
-    exit(configResult);
-  }
-
   if (options.web) {
-    
-    printf("Web server started");
+
+    // Interactive simulation
+    WebServer *server = new WebServer();
+
+    configResult = server->configure(
+      "server.json",
+      options.path);
+
+    if (configResult != 0) {
+      ERROR("Error(%d): unable to configure web server", configResult);
+
+      delete server;
+      exit(configResult);
+    }
+
+    server->setSimulation(sim);
+    server->start();
+
+    INFO("web server started (press ctrl+c to exit)");
+
+    server->join();
+    delete server;
+    server = NULL;
 
   } else {
 
+    // Single run
     configResult = sim->configure(
       options.configFile,
-      options.path,
-      options.web);
+      options.path);
 
-    // Here we go
+    // Configuration should go flawless
+    if (configResult != 0) {
+      ERROR("Error(%d): unable to configure simulation", configResult);
+      exit(configResult);
+    }
+
     sim->run();
-
     sim->finalize();
   }
 

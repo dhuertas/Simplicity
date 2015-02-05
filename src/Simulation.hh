@@ -33,8 +33,6 @@ class Simulation : public Object {
 
   Time currentTime_;
 
-  WebServer *server_;
-
  public:
 
   Simulation();
@@ -46,7 +44,7 @@ class Simulation : public Object {
     return &instance;
   }
 
-  int configure(const char *fileName, const char *path, bool web=false);
+  int configure(const char *fileName, const char *path);
 
   void run();
 

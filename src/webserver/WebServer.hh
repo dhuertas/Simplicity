@@ -125,7 +125,7 @@ class WebServer : public Thread {
 
   Simulation *sim_;
 
-  // Parameters
+  // Config Parameters
   unsigned short port_;
 
   int timeout_;
@@ -149,6 +149,8 @@ class WebServer : public Thread {
   void initialize();
 
   void finalize();
+
+  int configure(const char *fileName, const char *path);
 
   void *run();
 
