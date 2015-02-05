@@ -23,7 +23,7 @@ Simulation::~Simulation() {
 }
 
 //------------------------------------------------------------------------------
-int Simulation::configure(const char *fileName, const char *path) {
+int Simulation::configure(const char *fileName, const char *path, bool web) {
 
   if (fileName == NULL) {
     ERROR("Missing file name");
@@ -138,7 +138,7 @@ int Simulation::configure(const char *fileName, const char *path) {
   // Web server
   //
   JsonObject *webServerConfig = (JsonObject *)config_->getValue("webserver");
-  if (webServerConfig != NULL and webServerConfig->isObject()) {
+  if (web && webServerConfig != NULL and webServerConfig->isObject()) {
     INFO("Spawning web server");
     server_ = new WebServer();
 

@@ -11,22 +11,25 @@ typedef struct Options {
   int verbosity;
   char *configFile;
   char *path;
+  bool web;
 } options_t;
 
 static const struct option longOpts[] = {
   { "config",   required_argument,  NULL, 'c' },
   { "verbose",  no_argument,        NULL, 'v' },
+  { "web",      no_argument,        NULL, 'w' },
   { "help",     no_argument,        NULL, 'h' },
   { NULL,       no_argument,        NULL, 0 }
 };
 
-static const char *optString = "c:h?";
+static const char *optString = "c:wh?";
 
 //------------------------------------------------------------------------------
 void printHelp(const char *name) {
   
   printf("Usage: %s -c config-file\n", name);
   printf("\t-c, --config: configuration file\n");
+  printf("\t-w, --web: enable web interface\n");
   printf("\t-h, --help: this help\n");
 }
 
@@ -48,6 +51,9 @@ int getOptions(int argc, char *argv[], options_t *options) {
         break;
       case 'v':
         options->verbosity++;
+        break;
+      case 'w':
+        options->web = true;
         break;
       case 'h':
       case '?':
@@ -83,6 +89,7 @@ int main(int argc, char *argv[]) {
   options.verbosity = 0;
   options.configFile = NULL;
   options.path = argv[0];
+  options.web = false;
 
   getOptions(argc, argv, &options);
 
@@ -100,10 +107,6 @@ int main(int argc, char *argv[]) {
   // Configure simulation
   int configResult = 0;
 
-  configResult = sim->configure(
-    options.configFile,
-    options.path);
-
   // Configuration should go flawless
   if (configResult != 0) {
     printf("Error(%d): unable to configure simulation\n", configResult);
@@ -111,10 +114,22 @@ int main(int argc, char *argv[]) {
     exit(configResult);
   }
 
-  // Here we go
-  sim->run();
+  if (options.web) {
+    
+    printf("Web server started");
 
-  sim->finalize();
+  } else {
+
+    configResult = sim->configure(
+      options.configFile,
+      options.path,
+      options.web);
+
+    // Here we go
+    sim->run();
+
+    sim->finalize();
+  }
 
   exit(0);
 }
