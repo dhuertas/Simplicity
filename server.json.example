@@ -1,0 +1,14 @@
+// Web server configuration
+{
+  // Port to listen to
+  "port" : 8080,
+
+  // Number of worker threads
+  "threads" : 10,
+
+  // Web server root folder
+  "documentRoot" : "./www",
+
+  // Connection timeout (in seconds)
+  "timeout" : 1
+}
