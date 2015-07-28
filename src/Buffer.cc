@@ -89,7 +89,7 @@ uint32_t Buffer::append(double value) {
 }
 
 //------------------------------------------------------------------------------
-uint32_t Buffer::append( uint8_t value) {
+uint32_t Buffer::append(uint8_t value) {
 
   if (writePos_ + sizeof(value) > size_) {
     allocate(writePos_ + sizeof(value));
