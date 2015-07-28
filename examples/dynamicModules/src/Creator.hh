@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "Brainstorm.hh"
+#include "Simplicity.hh"
 #include "Dude.hh"
 
 class Creator : public Module {

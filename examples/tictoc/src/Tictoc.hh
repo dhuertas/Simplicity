@@ -1,7 +1,7 @@
 #ifndef __TICTOC_HH__
 #define __TICTOC_HH__
 
-#include "Brainstorm.hh"
+#include "Simplicity.hh"
 
 class Tictoc : public Module {
 

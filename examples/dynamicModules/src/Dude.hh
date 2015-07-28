@@ -1,7 +1,7 @@
 #ifndef __DUDE_HH__
 #define __DUDE_HH__
 
-#include "Brainstorm.hh"
+#include "Simplicity.hh"
 
 class Dude : public Module {
 
