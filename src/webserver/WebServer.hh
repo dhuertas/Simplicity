@@ -144,7 +144,7 @@ class WebServer : public Thread {
   WebServer();
 
   // Destructor
-  ~WebServer() {}
+  ~WebServer();
 
   void initialize();
 

@@ -17,7 +17,7 @@ volatile int WebServer::clientSockFdCount_ = 0;
 unsigned int WebServer::count_ = 0;
 
 //------------------------------------------------------------------------------
-WebServer::WebServer() : 
+WebServer::WebServer() :
   config_(NULL),
   thread_(NULL),
   threadId_(NULL),
@@ -27,6 +27,13 @@ WebServer::WebServer() :
   numberOfThreads_(0),
   status_(STOPPED) {
 
+}
+
+WebServer::~WebServer() {
+
+  if (config_ != NULL) {
+    delete config_;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -219,7 +226,7 @@ void *WebServer::run() {
 //------------------------------------------------------------------------------
 void WebServer::stop() {
   setStatus(STOPPED);
-  shutdown(serverSockFd_, 2); 
+  shutdown(serverSockFd_, 2);
 }
 
 //------------------------------------------------------------------------------
@@ -316,7 +323,7 @@ int8_t WebServer::requestHandler(int sockfd) {
         clearRequest(&req);
         return -1;
       }
-    }  
+    }
   }
 
   conn = getHeader(&req.headers, "Connection");
@@ -356,8 +363,8 @@ int8_t WebServer::handleRequest(int sockfd, request_t *req) {
   if (components.size() != 0) {
     req->resource = components[0];
 
-    if (components.size() == 2) { 
-      req->query = components[1]; 
+    if (components.size() == 2) {
+      req->query = components[1];
     }
   } else {
     req->resource = req->uri;
@@ -447,7 +454,7 @@ int8_t WebServer::receiveRequest(int sockfd, request_t *req) {
         req->version = trim(splitted[2]);
       }
 
-      DEBUG("Request = %s %s %s", 
+      DEBUG("Request = %s %s %s",
         req->method.c_str(),
         req->uri.c_str(),
         req->version.c_str());
