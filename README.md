@@ -1,4 +1,4 @@
-Sim.plicity
+Simplicity
 ======
 
 A simple event driven simulation framework.

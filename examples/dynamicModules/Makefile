@@ -26,6 +26,7 @@ clean:
 	@rm -f ./src/*.o               ./src/*.d
 	@rm -f ../../src/*.o           ../../src/*.d
 	@rm -f ../../src/json/*.o      ../../src/json/*.d
+	@rm -f ../../src/rng/*.o       ../../src/rng/*.d
 	@rm -f ../../src/webserver/*.o ../../src/webserver/*.d
 	@rm -rf $(TARGET).dSYM
 	@rm -f $(TARGET)
