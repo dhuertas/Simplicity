@@ -55,6 +55,13 @@ class Simulation : public Object {
 
   void reset();
 
+  Module *createModule(std::string moduleName);
+
+  void deleteModule(Module *module);
+
+  //
+  // Gets and sets
+  //
   Module *getModule(int id);
 
   Module *getModule(std::string name);
@@ -67,9 +74,9 @@ class Simulation : public Object {
 
   Time *getCurrentTime() { return &currentTime_; }
 
-  Module *createModule(std::string moduleName);
+  double getDoubleRand();
 
-  void deleteModule(Module *module);
+  long long unsigned getIntRand();
 
 };
 

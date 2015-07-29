@@ -297,3 +297,25 @@ Module* Simulation::createModule(std::string moduleName) {
 void Simulation::deleteModule(Module *module) {
   domain_->deleteModule(module);
 }
+
+//------------------------------------------------------------------------------
+double Simulation::getDoubleRand() {
+  
+  if (rng_ == NULL) {
+    ERROR("Missing RNG");
+    return 0.0;
+  }
+
+  return rng_->genrand64_real1();
+}
+
+//------------------------------------------------------------------------------
+long long unsigned Simulation::getIntRand() {
+  
+  if (rng_ == NULL) {
+    ERROR("Missing RNG");
+    return 0;
+  }
+
+  return (long long)rng_->genrand64_int64();
+}
