@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "Random.hh"
 #include "Simulation.hh"
 

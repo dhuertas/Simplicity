@@ -1,10 +1,6 @@
 #ifndef __RANDOM_HH__
 #define __RANDOM_HH__
 
-#include <cmath>
-
-class Simulation;
-
 class Random {
 
  private:
