@@ -1,10 +1,11 @@
 #include "Simulation.hh"
 #include "JsonReader.hh"
 #include "Chrono.hh"
+#include "CompoundModule.hh"
 
 //------------------------------------------------------------------------------
-Simulation::Simulation() : 
-  domain_(NULL), 
+Simulation::Simulation() :
+  domain_(NULL),
   config_(NULL),
   fes_(NULL),
   currentEvent_(NULL),
@@ -71,7 +72,7 @@ int Simulation::configure(const char *fileName, const char *path) {
     } else {
       Logger::setRedirect(logFileName->toString().c_str());
     }
-  } 
+  }
 
   // Global.timeScaleExp
   JsonValue *timeScaleExp = globalConfig->getValue("timeScaleExp");
@@ -109,7 +110,7 @@ int Simulation::configure(const char *fileName, const char *path) {
     INFO("Mersenne Twister RNG seed: %u", mtSeed->toInteger());
     rng_ = new MersenneTwister(mtSeed->toInteger());
   }
- 
+
   //
   // Domain
   //
@@ -127,11 +128,20 @@ int Simulation::configure(const char *fileName, const char *path) {
 
   std::vector<JsonObjectPair>::iterator it;
   for (it = modulesConfig->begin(); it != modulesConfig->end(); ++it) {
-    Module *module = createModule((*it).second->getString());
-    if (module != NULL) {
-      // Use the json object parameter key as module name
-      // It is later used to initialize each module from the init file
-      module->setName((*it).first);
+    // If second is an object, check for a compound modules
+    if ((*it).second->isObject()) {
+      Module *compound = createCompound((JsonObject *)(*it).second);
+      if (compound != NULL) {
+        compound->setName((*it).first);
+      }
+    } else {
+      // Otherwise, check for a string for a base module
+      Module *module = createModule((*it).second->getString());
+      if (module != NULL) {
+        // Use the json object parameter key as module name
+        // It is later used to initialize each module from the init file
+        module->setName((*it).first);
+      }
     }
   }
 
@@ -201,7 +211,7 @@ void Simulation::run() {
   }
 
   elapsed = chronometer.elapsed();
-  INFO("Execution time %.06f seconds; %llu events; %g events/second; avg simsec/second %.06f", 
+  INFO("Execution time %.06f seconds; %llu events; %g events/second; avg simsec/second %.06f",
     elapsed,
     eventCount,
     eventCount/elapsed,
@@ -294,13 +304,64 @@ Module* Simulation::createModule(std::string moduleName) {
 }
 
 //------------------------------------------------------------------------------
+Module *Simulation::createCompound(JsonObject *moduleConfig) {
+
+  if (moduleConfig == NULL) {
+    ERROR("Missing compound module config");
+    return NULL;
+  }
+
+  CompoundModule *res = NULL;
+
+  if (moduleConfig->find("submodules") != NULL) {
+
+    res = new CompoundModule();
+
+    JsonValue *submodulesConfig = moduleConfig->find("submodules");
+    std::vector<JsonObjectPair>::iterator it;
+
+    for (it = submodulesConfig->begin(); it != submodulesConfig->end(); ++it) {
+
+      Module *module = NULL;
+
+      if ((*it).second->isObject()) {
+        // If second is an object, check for a compound modules
+        module = createCompound((JsonObject *)(*it).second);
+      } else {
+        // Otherwise, check for a string for a base module
+        module = createModule((*it).second->getString());
+      }
+
+      if (module != NULL) {
+        // Use the json object parameter key as module name
+        // It is later used to initialize each module from the init file
+        module->setName((*it).first);
+        res->addChildModule(module);
+      }
+    }
+
+    res->setFes(fes_);
+
+    if ( ! domain_) {
+      INFO("Unable to add compound module to domain");
+      delete res;
+      return NULL;
+    }
+
+    domain_->addModule(res);
+  }
+
+  return res;
+}
+
+//------------------------------------------------------------------------------
 void Simulation::deleteModule(Module *module) {
   domain_->deleteModule(module);
 }
 
 //------------------------------------------------------------------------------
 double Simulation::getDoubleRand() {
-  
+
   if (rng_ == NULL) {
     ERROR("Missing RNG");
     return 0.0;
@@ -311,7 +372,7 @@ double Simulation::getDoubleRand() {
 
 //------------------------------------------------------------------------------
 long long unsigned Simulation::getIntRand() {
-  
+
   if (rng_ == NULL) {
     ERROR("Missing RNG");
     return 0;

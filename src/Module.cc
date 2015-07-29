@@ -1,7 +1,7 @@
 #include "Module.hh"
 
 //------------------------------------------------------------------------------
-Module::Module() : 
+Module::Module() :
   id_(0),
   fes_(NULL),
   params_(NULL) {

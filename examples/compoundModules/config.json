@@ -1,0 +1,27 @@
+{
+  "global" : {
+    "timeLimit" : 100,
+    "timeScaleExp" : -3.0,
+    "logFileName" : "sim.out",
+    "mtSeed" : 1234
+  },
+
+  "domain" : {
+
+    "name" : "SimpleDomain",
+    "initFileName" : "init.json",
+
+    "modules" : {
+      "base" : "BaseModule",
+      "compound" : {
+        "submodules" : {
+          "baseA" : "BaseModule",
+          "baseB" : "BaseModule"
+        },
+        "parameters" : {
+          "value" : 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+[INFO][int Simulation::configure(const char *, const char *)]: Start time: 0 (default)
+[INFO][int Simulation::configure(const char *, const char *)]: Mersenne Twister RNG seed: 1234
+[INFO][Module *Simulation::createModule(std::string)]: Creating BaseModule module
+[DEBUG][../../src/Domain.cc:75 void Domain::addModule(Module *)]: Initialization stages: 0 -> 1
+[INFO][Module *Simulation::createModule(std::string)]: Creating BaseModule module
+[INFO][Module *Simulation::createModule(std::string)]: Creating BaseModule module
+[INFO][int Simulation::configure(const char *, const char *)]: Initializing domain
+[DEBUG][../../src/Domain.cc:30 int Domain::initialize(std::string)]: Initializing 4 modules, stage 1
+[INFO][void Simulation::run()]: Running ...
+[INFO][void Simulation::run()]: Execution time 0.000000 seconds; 0 events; nan events/second; avg simsec/second nan
+[INFO][void Simulation::run()]: Empty FES
+[DEBUG][../../src/Domain.cc:59 void Domain::finalize()]: Removing module from domain
+[DEBUG][../../src/Domain.cc:59 void Domain::finalize()]: Removing module from domain
+[DEBUG][../../src/Domain.cc:59 void Domain::finalize()]: Removing module from domain
+[DEBUG][../../src/Domain.cc:59 void Domain::finalize()]: Removing module from domain
+[INFO][void Simulation::reset()]: Removing config
+[INFO][void Simulation::reset()]: Removing FES
+[INFO][void Simulation::reset()]: Removing simulation domain
+[INFO][void Simulation::reset()]: Removing RNG
