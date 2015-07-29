@@ -7,7 +7,8 @@ Simulation::Simulation() :
   domain_(NULL), 
   config_(NULL),
   fes_(NULL),
-  currentEvent_(NULL) {
+  currentEvent_(NULL),
+  rng_(NULL) {
 
   fes_ = new BinaryHeap();
   fes_->setComparator(Event::compare);
@@ -99,6 +100,16 @@ int Simulation::configure(const char *fileName, const char *path) {
 
   currentTime_ = timeStart_;
 
+  // Global.mtSeed
+  JsonValue *mtSeed = globalConfig->getValue("mtSeed");
+  if (mtSeed == NULL or ! mtSeed->isNumber()) {
+    INFO("Missing RNG seed (using 0)");
+    rng_ = new MersenneTwister(0);
+  } else {
+    INFO("Mersenne Twister RNG seed: %u", mtSeed->toInteger());
+    rng_ = new MersenneTwister(mtSeed->toInteger());
+  }
+ 
   //
   // Domain
   //
@@ -229,6 +240,12 @@ void Simulation::reset() {
     INFO("Removing simulation domain");
     delete domain_;
     domain_ = NULL;
+  }
+
+  if (rng_ != NULL) {
+    INFO("Removing RNG");
+    delete rng_;
+    rng_ = NULL;
   }
 
 }

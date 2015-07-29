@@ -9,6 +9,7 @@
 #include "Time.hh"
 #include "Domain.hh"
 #include "WebServer.hh"
+#include "MersenneTwister.hh"
 
 #define Sim \
   Simulation::getInstance()
@@ -32,6 +33,8 @@ class Simulation : public Object {
   Event *currentEvent_;
 
   Time currentTime_;
+
+  MersenneTwister *rng_;
 
  public:
 

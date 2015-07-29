@@ -5,6 +5,7 @@ SHELL = /bin/bash
 INCLUDE = \
   -I../../src \
   -I../../src/json \
+  -I../../src/rng \
   -I../../src/webserver
 
 LIBS =

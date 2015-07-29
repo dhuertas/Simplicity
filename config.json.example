@@ -16,7 +16,10 @@
     "timeStart" : 0,
 
     // Log simulation messages to this file
-    "logFileName" : "sim.out"
+    "logFileName" : "sim.out",
+
+    // Mersenne Twister RNG seed
+    "mtSeed" : 1024
   },
 
   // Domain configuration
