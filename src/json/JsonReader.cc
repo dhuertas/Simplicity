@@ -102,7 +102,7 @@ uint32_t JsonReader::endOfString() {
   uint32_t end = current_;
 
   while ((
-      buffer_[end] != '"' || 
+      buffer_[end] != '"' ||
       strncmp(&buffer_[end-1], ESCAPED_DOUBLEQUOTES, 2) == 0) &&
     end < length_) {
 
@@ -271,7 +271,9 @@ JsonNumber *JsonReader::decodeNumber() {
   buffer[length] = '\0';
 
   JsonNumber *number = new JsonNumber(strtod(buffer, NULL));
-  
+
+  delete [] buffer;
+
   current_ = end;
 
   return number;
