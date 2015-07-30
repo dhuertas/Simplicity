@@ -1,0 +1,10 @@
+{
+  "base" : { "value" : 1 },
+  "compound" : {
+    // Submodules
+    "baseA" : { "value" : 2 },
+    "baseB" : { "value" : 3 },
+    // Parameters
+    "value" : 0
+  }
+}
