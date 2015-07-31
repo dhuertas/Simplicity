@@ -151,7 +151,7 @@ JsonObject *JsonReader::decodeObject() {
 
     // first check whether it is empty ...
     if (buffer_[current_] == '}') {
-      DEBUG("Empty value");
+      DEBUG("Empty value (%u)", current_);
       break;
     }
 
