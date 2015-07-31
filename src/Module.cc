@@ -54,6 +54,13 @@ JsonValue* Module::getParam(std::string paramName) {
 }
 
 //------------------------------------------------------------------------------
+void Module::setParams(JsonValue *params)  {
+
+  DEBUG("Module %s params: %s", name_.c_str(), params->toString().c_str());
+  params_ = params;
+}
+
+//------------------------------------------------------------------------------
 void Module::setParent(Module *module) {
 
   if (module != NULL) {

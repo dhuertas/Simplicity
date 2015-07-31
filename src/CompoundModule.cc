@@ -12,7 +12,12 @@ void CompoundModule::handleEvent(Event *ev) {
 
 // -----------------------------------------------------------------------------
 void CompoundModule::initialize(int stage) {
-  // Initialize compound module variables
+  // Initialize submodules
+  std::vector<Module *>::iterator it;
+
+  for (it = submodules_.begin(); it != submodules_.end(); ++it) {
+    (*it)->initialize(stage);
+  }
 }
 
 // -----------------------------------------------------------------------------

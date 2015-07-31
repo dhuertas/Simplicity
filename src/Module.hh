@@ -62,7 +62,7 @@ class Module : public Object {
 
   void setName(std::string name) { name_ = name; }
 
-  void setParams(JsonValue* params) { params_ = params; }
+  void setParams(JsonValue* params);
 
   void setParent(Module *module);
 

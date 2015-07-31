@@ -36,7 +36,12 @@ int Domain::initialize(std::string initFileName) {
         JsonValue *params = (*init_)[currentModule->getName()];
         currentModule->setParams(params);
 
-        // Initialize it
+        // If currentModule belongs to a compound module, skip it. It will get
+        // initialized by its parent module.
+        if (currentModule->getParent() != NULL)
+          continue;
+
+        // Otherwise, initialize it
         currentModule->initialize(stage);
       }
     }
@@ -64,7 +69,7 @@ void Domain::finalize() {
 
 //------------------------------------------------------------------------------
 void Domain::addModule(Module *module) {
-  
+
   if (module != NULL) {
 
     modules_.push_back(module);
