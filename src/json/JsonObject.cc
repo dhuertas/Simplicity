@@ -5,6 +5,10 @@ uint8_t JsonObject::type_ = JsonValue::OBJECT_VALUE;
 //------------------------------------------------------------------------------
 JsonValue* JsonObject::find(const char *key) {
 
+  if (key == NULL || strlen(key) == 0) {
+    return NULL;
+  }
+
   std::string keystr(key);
   return find(keystr);
 }
