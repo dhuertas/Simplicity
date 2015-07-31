@@ -4,7 +4,8 @@
 Module::Module() :
   id_(0),
   fes_(NULL),
-  params_(NULL) {
+  params_(NULL),
+  parent_(NULL) {
 
 }
 
@@ -50,4 +51,14 @@ JsonValue* Module::getParam(std::string paramName) {
   }
 
   return (*params_)[paramName];
+}
+
+//------------------------------------------------------------------------------
+void Module::setParent(Module *module) {
+
+  if (module != NULL) {
+    parent_ = module;
+  } else {
+    ERROR("Unable to set parent module");
+  }
 }

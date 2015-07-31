@@ -4,8 +4,9 @@ uint8_t JsonObject::type_ = JsonValue::OBJECT_VALUE;
 
 //------------------------------------------------------------------------------
 JsonValue* JsonObject::find(const char *key) {
-  string str(key);
-  return find(str);
+
+  std::string keystr(key);
+  return find(keystr);
 }
 
 //------------------------------------------------------------------------------

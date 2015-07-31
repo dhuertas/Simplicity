@@ -6,7 +6,6 @@
 #include "BinaryHeap.hh"
 #include "ModuleFactory.hh"
 #include "JsonValue.hh"
-#include "JsonObject.hh"
 #include "Time.hh"
 #include "Domain.hh"
 #include "WebServer.hh"
@@ -58,7 +57,7 @@ class Simulation : public Object {
 
   Module *createModule(std::string moduleName);
 
-  Module *createCompound(JsonObject *moduleConfig);
+  Module *createCompound(std::string moduleName, JsonValue *moduleConfig);
 
   void deleteModule(Module *module);
 

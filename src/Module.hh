@@ -21,7 +21,9 @@ class Module : public Object {
 
   std::string name_;
 
-  JsonValue* params_;
+  JsonValue *params_;
+
+  Module *parent_;
 
  public:
 
@@ -52,6 +54,8 @@ class Module : public Object {
 
   JsonValue* getParam(std::string paramName);
 
+  Module* getParent(void) { return parent_; }
+
   void setId(unsigned int id) { id_ = id; }
 
   void setFes(BinaryHeap *bh) { fes_ = bh; }
@@ -59,6 +63,8 @@ class Module : public Object {
   void setName(std::string name) { name_ = name; }
 
   void setParams(JsonValue* params) { params_ = params; }
+
+  void setParent(Module *module);
 
   bool isName(std::string name) { return name_.compare(name) == 0; }
 

@@ -104,7 +104,7 @@ int Simulation::configure(const char *fileName, const char *path) {
   // Global.mtSeed
   JsonValue *mtSeed = globalConfig->getValue("mtSeed");
   if (mtSeed == NULL or ! mtSeed->isNumber()) {
-    INFO("Missing RNG seed (using 0)");
+    INFO("Missing Mersenne Twister RNG seed (default 0)");
     rng_ = new MersenneTwister(0);
   } else {
     INFO("Mersenne Twister RNG seed: %u", mtSeed->toInteger());
@@ -127,21 +127,20 @@ int Simulation::configure(const char *fileName, const char *path) {
   }
 
   std::vector<JsonObjectPair>::iterator it;
+
   for (it = modulesConfig->begin(); it != modulesConfig->end(); ++it) {
-    // If second is an object, check for a compound modules
+    Module *module = NULL;
+    // If second is an object, check for compound modules
     if ((*it).second->isObject()) {
-      Module *compound = createCompound((JsonObject *)(*it).second);
-      if (compound != NULL) {
-        compound->setName((*it).first);
-      }
+      module = createCompound((*it).first, (*it).second);
     } else {
       // Otherwise, check for a string for a base module
-      Module *module = createModule((*it).second->getString());
-      if (module != NULL) {
-        // Use the json object parameter key as module name
-        // It is later used to initialize each module from the init file
-        module->setName((*it).first);
-      }
+      module = createModule((*it).second->getString());
+    }
+    if (module != NULL) {
+      // Use the json object parameter key as module name
+      // It is later used to initialize each module from the init file
+      module->setName((*it).first);
     }
   }
 
@@ -211,11 +210,11 @@ void Simulation::run() {
   }
 
   elapsed = chronometer.elapsed();
-  INFO("Execution time %.06f seconds; %llu events; %g events/second; avg simsec/second %.06f",
+  INFO("Execution time %.06f seconds; %llu events; %g events/second; %.06f simsec/second ",
     elapsed,
     eventCount,
-    eventCount/elapsed,
-    currentTime_.dbl()/elapsed);
+    elapsed > 0 ? eventCount/elapsed : 0,
+    elapsed > 0 ? currentTime_.dbl()/elapsed : 0);
 
   if (fes_->size() == 0) {
     INFO("Empty FES");
@@ -304,7 +303,7 @@ Module* Simulation::createModule(std::string moduleName) {
 }
 
 //------------------------------------------------------------------------------
-Module *Simulation::createCompound(JsonObject *moduleConfig) {
+Module *Simulation::createCompound(std::string moduleName, JsonValue *moduleConfig) {
 
   if (moduleConfig == NULL) {
     ERROR("Missing compound module config");
@@ -313,11 +312,20 @@ Module *Simulation::createCompound(JsonObject *moduleConfig) {
 
   CompoundModule *res = NULL;
 
-  if (moduleConfig->find("submodules") != NULL) {
+  char buffer[2048];
+  memset(buffer, 0, sizeof(buffer));
+
+  INFO("Creating compound module: %s", moduleName.c_str());
+
+  JsonObject *config = (JsonObject *)moduleConfig;
+
+  printf("%s", config->toString(buffer, sizeof(buffer)));
+
+  if (moduleConfig->getValue("submodules") != NULL) {
 
     res = new CompoundModule();
 
-    JsonValue *submodulesConfig = moduleConfig->find("submodules");
+    JsonValue *submodulesConfig = moduleConfig->getValue("submodules");
     std::vector<JsonObjectPair>::iterator it;
 
     for (it = submodulesConfig->begin(); it != submodulesConfig->end(); ++it) {
@@ -326,7 +334,7 @@ Module *Simulation::createCompound(JsonObject *moduleConfig) {
 
       if ((*it).second->isObject()) {
         // If second is an object, check for a compound modules
-        module = createCompound((JsonObject *)(*it).second);
+        module = createCompound((*it).first, (*it).second);
       } else {
         // Otherwise, check for a string for a base module
         module = createModule((*it).second->getString());
@@ -337,6 +345,7 @@ Module *Simulation::createCompound(JsonObject *moduleConfig) {
         // It is later used to initialize each module from the init file
         module->setName((*it).first);
         res->addChildModule(module);
+        module->setParent(res);
       }
     }
 

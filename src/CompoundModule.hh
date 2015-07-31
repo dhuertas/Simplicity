@@ -13,6 +13,8 @@ class CompoundModule : public Module {
 
  public:
 
+   CompoundModule();
+
    void handleEvent(Event *ev);
 
    void initialize(int stage);
