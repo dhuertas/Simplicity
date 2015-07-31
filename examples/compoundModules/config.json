@@ -17,9 +17,6 @@
         "submodules" : {
           "baseA" : "BaseModule",
           "baseB" : "BaseModule"
-        },
-        "parameters" : {
-          "value" : 0
         }
       }
     }
