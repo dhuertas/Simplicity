@@ -8,8 +8,7 @@ Simulation::Simulation() :
   domain_(NULL),
   config_(NULL),
   fes_(NULL),
-  currentEvent_(NULL),
-  rng_(NULL) {
+  currentEvent_(NULL) {
 
   fes_ = new BinaryHeap();
   fes_->setComparator(Event::compare);
@@ -17,6 +16,8 @@ Simulation::Simulation() :
   domain_ = new Domain();
 
   currentTime_ = Time(0);
+
+  rng_.clear();
 }
 
 //------------------------------------------------------------------------------
@@ -103,12 +104,21 @@ int Simulation::configure(const char *fileName, const char *path) {
 
   // Global.mtSeed
   JsonValue *mtSeed = globalConfig->getValue("mtSeed");
-  if (mtSeed == NULL or ! mtSeed->isNumber()) {
-    INFO("Missing Mersenne Twister RNG seed (default 0)");
-    rng_ = new MersenneTwister(0);
-  } else {
+  if (mtSeed == NULL) {
+    INFO("Missing Mersenne Twister RNG seed (default 1234)");
+    rng_.push_back(new MersenneTwister(1234));
+  } else if (mtSeed->isArray()) {
+    JsonArray *seeds = (JsonArray *)mtSeed;
+    for (uint32_t i = 0; i < seeds->size(); i++) {
+      INFO("Mersenne Twister RNG[%u] seed: %u", i, (*seeds)[i]->toInteger());
+      rng_.push_back(new MersenneTwister((*seeds)[i]->toInteger()));
+    }
+  } else if (mtSeed->isNumber()) {
     INFO("Mersenne Twister RNG seed: %u", mtSeed->toInteger());
-    rng_ = new MersenneTwister(mtSeed->toInteger());
+    rng_.push_back(new MersenneTwister(mtSeed->toInteger()));
+  } else {
+    ERROR("Unable to set RNG");
+    return -1;
   }
 
   //
@@ -251,10 +261,13 @@ void Simulation::reset() {
     domain_ = NULL;
   }
 
-  if (rng_ != NULL) {
-    INFO("Removing RNG");
-    delete rng_;
-    rng_ = NULL;
+  if (rng_.size() > 0) {
+    INFO("Removing RNGs");
+    while ( ! rng_.empty()) {
+      MersenneTwister *rng = rng_.back();
+      rng_.pop_back();
+      delete rng;
+    }
   }
 
 }
@@ -369,23 +382,23 @@ void Simulation::deleteModule(Module *module) {
 }
 
 //------------------------------------------------------------------------------
-double Simulation::getDoubleRand() {
+double Simulation::getDoubleRand(uint32_t rngIdx) {
 
-  if (rng_ == NULL) {
-    ERROR("Missing RNG");
+  if (rngIdx > rng_.size()) {
+    ERROR("RNG index out of bounds");
     return 0.0;
   }
 
-  return rng_->genrand64_real1();
+  return rng_[rngIdx] != NULL ? rng_[rngIdx]->genrand64_real1() : 0.0;
 }
 
 //------------------------------------------------------------------------------
-long long unsigned Simulation::getIntRand() {
+long long unsigned Simulation::getIntRand(uint32_t rngIdx) {
 
-  if (rng_ == NULL) {
-    ERROR("Missing RNG");
+  if (rngIdx > rng_.size()) {
+    ERROR("RNG index out of bounds");
     return 0;
   }
 
-  return (long long)rng_->genrand64_int64();
+  return rng_[rngIdx] != NULL ? (long long)rng_[rngIdx]->genrand64_int64() : 0;
 }

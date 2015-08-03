@@ -27,7 +27,9 @@ class JsonArray : public JsonValue {
     values_.push_back(val);
   };
 
-  uint8_t getType() { return type_; }
+  uint32_t size(void) { return values_.size(); }
+
+  uint8_t getType(void) { return type_; }
 
   const char *toString(char *buffer, uint32_t length) {
     snprintf(buffer, length, "%s", "array");

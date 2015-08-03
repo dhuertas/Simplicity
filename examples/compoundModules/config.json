@@ -3,7 +3,7 @@
     "timeLimit" : 100,
     "timeScaleExp" : -3.0,
     "logFileName" : "sim.out",
-    "mtSeed" : 1234
+    "mtSeed" : [1234, 1235]
   },
 
   "domain" : {

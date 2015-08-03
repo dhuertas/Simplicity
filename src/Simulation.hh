@@ -34,7 +34,7 @@ class Simulation : public Object {
 
   Time currentTime_;
 
-  MersenneTwister *rng_;
+  std::vector<MersenneTwister *> rng_;
 
  public:
 
@@ -76,9 +76,9 @@ class Simulation : public Object {
 
   Time *getCurrentTime() { return &currentTime_; }
 
-  double getDoubleRand();
+  double getDoubleRand(uint32_t rngIdx = 0);
 
-  long long unsigned getIntRand();
+  long long unsigned getIntRand(uint32_t rngIdx = 0);
 
 };
 
