@@ -35,7 +35,7 @@ class MyModule : public Module {
   virtual void finalize(void);
 
   ...
-}
+};
 
 ```
 
