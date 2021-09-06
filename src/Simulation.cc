@@ -139,18 +139,48 @@ int Simulation::configure(const char *fileName, const char *path) {
   std::vector<JsonObjectPair>::iterator it;
 
   for (it = modulesConfig->begin(); it != modulesConfig->end(); ++it) {
+
     Module *module = NULL;
+
     // If second is an object, check for compound modules
     if ((*it).second->isObject()) {
-      module = createCompound((*it).first, (*it).second);
+
+      if ((*it).second->getValue("submodules") != NULL) {
+
+        module = createCompound((*it).first, (*it).second);
+ 
+        if (module != NULL) {
+          module->setName((*it).first);
+        }
+
+      } else {
+
+        // No "submodules" means it's a regular module with additional parameters
+        std::string moduleName = (*it).second->getValue("name") != NULL ?
+          (*it).second->getValue("name")->getString() : "empty";
+
+        int count = (*it).second->getValue("count") != NULL ? 
+          (*it).second->getValue("count")->toInteger() : 0;
+
+        for (int i = 0; i < count; i++) {
+
+          std::stringstream ss;
+          ss << (*it).first << "_" << i;
+          module = createModule(moduleName);
+
+          if (module != NULL) {
+            module->setName(ss.str());
+          }
+        }
+      }
+
     } else {
       // Otherwise, check for a string for a base module
       module = createModule((*it).second->getString());
-    }
-    if (module != NULL) {
-      // Use the json object parameter key as module name
-      // It is later used to initialize each module from the init file
-      module->setName((*it).first);
+ 
+      if (module != NULL) {
+        module->setName((*it).first);
+      }
     }
   }
 
@@ -168,13 +198,13 @@ int Simulation::configure(const char *fileName, const char *path) {
 }
 
 //------------------------------------------------------------------------------
-void Simulation::run() {
+void Simulation::run(void) {
 
   Module *currentModule = NULL;
 
   INFO("Running ...");
 
-  long long unsigned eventCount = 0;
+  uint64_t eventCount = 0;
 
   Time *now = NULL;
 
@@ -186,12 +216,13 @@ void Simulation::run() {
   while (fes_->size() > 0) {
 
     currentEvent_ = (Event *)fes_->pop();
-    currentEvent_->setScheduled(false);
 
     if ( ! currentEvent_) {
       ERROR("null event");
       break;
     }
+
+    currentEvent_->setScheduled(false);
 
     now = currentEvent_->getTime();
     currentTime_.setRaw(now->raw());
@@ -203,24 +234,29 @@ void Simulation::run() {
 
     currentModule = currentEvent_->getTo();
 
+    DEBUG("%lu: event(%p) time(%.012f) type(%u)", 
+        eventCount, 
+        currentEvent_,
+        now->dbl(), 
+        currentEvent_->getType());
+
     if ( ! currentModule) {
       ERROR("null module");
       break;
     }
 
-    //DEBUG("Event(%llu) time(%.012f) type(%u)", eventCount, now->dbl(), currentEvent_->getType());
-
     currentModule->handleEvent(currentEvent_);
 
     // Check for deleted modules
-    if (domain_->deletedModules() > 0)
+    if (domain_->deletedModules() > 0) {
       domain_->clearDeletedModules();
+    }
 
     eventCount++;
   }
 
   elapsed = chronometer.elapsed();
-  INFO("Execution time %.06f seconds; %llu events; %g events/second; %.06f simsec/second ",
+  INFO("Execution time %.06f seconds; %lu events; %g events/second; %.06f simsec/second ",
     elapsed,
     eventCount,
     elapsed > 0 ? eventCount/elapsed : 0,
@@ -232,16 +268,15 @@ void Simulation::run() {
 }
 
 //------------------------------------------------------------------------------
-void Simulation::finalize() {
+void Simulation::finalize(void) {
 
   domain_->finalize();
 
   reset();
-
 }
 
 //------------------------------------------------------------------------------
-void Simulation::reset() {
+void Simulation::reset(void) {
 
   if (config_ != NULL) {
     INFO("Removing config");
@@ -285,7 +320,7 @@ Module* Simulation::getModule(std::string name) {
 }
 
 //------------------------------------------------------------------------------
-Module* Simulation::createModule(std::string moduleName) {
+Module* Simulation::createModule(const std::string &moduleName) {
 
   Module *module = CreateModule(moduleName);
 
@@ -316,7 +351,7 @@ Module* Simulation::createModule(std::string moduleName) {
 }
 
 //------------------------------------------------------------------------------
-Module *Simulation::createCompound(std::string moduleName, JsonValue *moduleConfig) {
+Module *Simulation::createCompound(const std::string &moduleName, JsonValue *moduleConfig) {
 
   if (moduleConfig == NULL) {
     ERROR("Missing compound module config");
@@ -329,10 +364,6 @@ Module *Simulation::createCompound(std::string moduleName, JsonValue *moduleConf
   memset(buffer, 0, sizeof(buffer));
 
   INFO("Creating compound module: %s", moduleName.c_str());
-
-  JsonObject *config = (JsonObject *)moduleConfig;
-
-  printf("%s", config->toString(buffer, sizeof(buffer)));
 
   if (moduleConfig->getValue("submodules") != NULL) {
 
@@ -378,6 +409,7 @@ Module *Simulation::createCompound(std::string moduleName, JsonValue *moduleConf
 
 //------------------------------------------------------------------------------
 void Simulation::deleteModule(Module *module) {
+
   domain_->deleteModule(module);
 }
 
@@ -393,12 +425,12 @@ double Simulation::getDoubleRand(uint32_t rngIdx) {
 }
 
 //------------------------------------------------------------------------------
-long long unsigned Simulation::getIntRand(uint32_t rngIdx) {
+int64_t Simulation::getIntRand(uint32_t rngIdx) {
 
   if (rngIdx > rng_.size()) {
     ERROR("RNG index out of bounds");
     return 0;
   }
 
-  return rng_[rngIdx] != NULL ? (long long)rng_[rngIdx]->genrand64_int64() : 0;
+  return rng_[rngIdx] != NULL ? (int64_t )rng_[rngIdx]->genrand64_int64() : 0;
 }

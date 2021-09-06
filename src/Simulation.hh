@@ -49,15 +49,15 @@ class Simulation : public Object {
 
   int configure(const char *fileName, const char *path);
 
-  void run();
+  void run(void);
 
-  void finalize();
+  void finalize(void);
 
-  void reset();
+  void reset(void);
 
-  Module *createModule(std::string moduleName);
+  Module *createModule(const std::string &moduleName);
 
-  Module *createCompound(std::string moduleName, JsonValue *moduleConfig);
+  Module *createCompound(const std::string &moduleName, JsonValue *moduleConfig);
 
   void deleteModule(Module *module);
 
@@ -68,17 +68,17 @@ class Simulation : public Object {
 
   Module *getModule(std::string name);
 
-  Domain *getDomain() { return domain_; }
+  Domain *getDomain(void) { return domain_; }
 
-  JsonValue *getConfig() { return config_; }
+  JsonValue *getConfig(void) { return config_; }
 
-  Event *getCurrentEvent() { return currentEvent_; }
+  Event *getCurrentEvent(void) { return currentEvent_; }
 
-  Time *getCurrentTime() { return &currentTime_; }
+  Time *getCurrentTime(void) { return &currentTime_; }
 
   double getDoubleRand(uint32_t rngIdx = 0);
 
-  long long unsigned getIntRand(uint32_t rngIdx = 0);
+  int64_t getIntRand(uint32_t rngIdx = 0);
 
 };
 
