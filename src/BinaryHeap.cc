@@ -50,7 +50,6 @@ void BinaryHeap::bubbleUp(unsigned long n) {
 
   while (n > 0) {
 
-    //unsigned long parentN = floor((n + 1) / 2) - 1;
     unsigned long parentN = ((n + 1) / 2) - 1;
     Object *parent = content_[parentN];
 
