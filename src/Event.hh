@@ -38,6 +38,8 @@ class Event : public Object {
 
   Time* getTime() { return &et_; }
 
+  Module* getOwner() { return owner_; }
+
   Module* getFrom() { return from_; }
 
   Module* getTo() { return to_; }
@@ -46,7 +48,7 @@ class Event : public Object {
 
   void setType(unsigned int type) { type_ = type; }
 
-  void setTime(Time t) { et_ = t; }
+  void setTime(const Time &t) { et_ = t; }
 
   void setFrom(Module *from) { from_ = from; }
 
