@@ -13,6 +13,10 @@ class Random {
 
   static double exponential(double mean, uint32_t rngIdx = 0);
 
+  static double uniform(double a, double b, uint32_t rngIdx = 0);
+
+  static double normal(double mean, double dev, uint32_t rngIdx = 0);
+
 };
 
 #endif
