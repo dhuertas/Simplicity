@@ -49,6 +49,8 @@ class JsonValue : public Object {
 
   virtual ~JsonValue() {}
 
+  virtual size_t size() const { return elements_.size(); }
+
   virtual uint8_t getType() { return nullType_; }
 
   virtual string getString() { return std::string("null"); }

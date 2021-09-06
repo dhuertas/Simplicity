@@ -4,6 +4,7 @@
 #include <utility>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include "JsonValue.hh"
 
@@ -48,6 +49,23 @@ class JsonObject : public JsonValue {
   uint8_t getType() { return type_; }
 
   vector<JsonObjectPair> *getElements() { return &elements_; }
+
+  std::string toString() {
+
+    std::stringstream ss;
+
+    ss << "{";
+
+    vector<JsonObjectPair>::iterator it;
+    for (it = elements_.begin(); it != elements_.end(); ++it) {
+      ss << "\"" << (*it).first << "\" : " << (*it).second->toString();
+      if (std::next(it) != elements_.end()) ss << ", ";
+    }
+  
+    ss << "}";
+
+    return ss.str();
+  }
 
   const char *toString(char *buffer, uint32_t length) {
     // TODO complete this
