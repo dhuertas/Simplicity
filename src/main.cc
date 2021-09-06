@@ -10,6 +10,7 @@
 #include "JsonValue.hh"
 
 typedef struct Options {
+  int quiet;
   int verbosity;
   char *configFile;
   char *path;
@@ -18,19 +19,22 @@ typedef struct Options {
 
 static const struct option longOpts[] = {
   { "config",   required_argument,  NULL, 'c' },
+  { "quiet",    no_argument,        NULL, 'q' },
   { "verbose",  no_argument,        NULL, 'v' },
   { "web",      no_argument,        NULL, 'w' },
   { "help",     no_argument,        NULL, 'h' },
   { NULL,       no_argument,        NULL, 0 }
 };
 
-static const char *optString = "c:wh?";
+static const char *optString = "c:qvwh?";
 
 //------------------------------------------------------------------------------
 void printHelp(const char *name) {
   
   printf("Usage: %s -c config-file\n", name);
   printf("\t-c, --config: configuration file\n");
+  printf("\t-q, --quiet: no output\n");
+  printf("\t-v, --verbosity: increase verbosity\n");
   printf("\t-w, --web: enable web interface\n");
   printf("\t-h, --help: this help\n");
 }
@@ -50,6 +54,9 @@ int getOptions(int argc, char *argv[], options_t *options) {
 
       case 'c':
         options->configFile = optarg;
+        break;
+      case 'q':
+        options->quiet++;
         break;
       case 'v':
         options->verbosity++;
@@ -89,6 +96,7 @@ int main(int argc, char *argv[]) {
 
   // Get options from command line
   options.verbosity = 0;
+  options.quiet = 0;
   options.configFile = NULL;
   options.path = argv[0];
   options.web = false;
@@ -104,7 +112,21 @@ int main(int argc, char *argv[]) {
   Simulation *sim = Simulation::getInstance();
 
   // Set log level
-  Logger::setLevel(Logger::LOG_DEBUG);
+  if (options.quiet) {
+
+    Logger::setLevel(Logger::LOG_NONE);
+  
+  } else {
+
+    switch (options.verbosity) {
+      case 1:
+        Logger::setLevel(Logger::LOG_DEBUG);
+        break;
+      default:
+        Logger::setLevel(Logger::LOG_INFO);
+        break;
+    }
+  }
 
   int configResult = 0;
 
