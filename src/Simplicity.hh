@@ -8,5 +8,6 @@
 #include "JsonValue.hh"
 #include "Record.hh"
 #include "Utils.hh"
+#include "Hash.hh"
 
 #endif
