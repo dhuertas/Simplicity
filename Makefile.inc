@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -g -Wall -O3
+CFLAGS = -Wall
 SHELL = /bin/bash
 
 INCLUDE = \
@@ -23,4 +23,4 @@ endif
 # Base sources
 SOURCES = $(shell find ../../src -name '*.cc')
 
-OBJS = $(shell find ../../src -name '*.cc' | sed 's/.cc/.o/g')
+OBJS = $(shell find ../../src -name '*.cc' | sed -e 's/.cc$$/.o/g')
