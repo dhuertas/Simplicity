@@ -19,12 +19,17 @@ int Domain::initialize(std::string initFileName) {
 
   JsonReader reader;
 
-  reader.parse(initFileName.c_str(), &init_);
+  if ( not reader.parse(initFileName.c_str(), &init_)) {
+      ERROR("Failed parsing init config");
+      return -1;
+  }
 
   if (init_ == NULL) {
     ERROR("Unable parse initialization file %s", initFileName.c_str());
     return -1;
   }
+
+  DEBUG("init: %s", init_->toString().c_str());
 
   for (int stage = 1; stage <= maxInitStages_; stage++) {
     DEBUG("Initializing %lu modules, stage %d", modules_.size(), stage);
@@ -33,6 +38,7 @@ int Domain::initialize(std::string initFileName) {
       Module *currentModule = modules_[i];
       // Set module parameters
       if (currentModule != NULL) {
+
         JsonValue *params = (*init_)[currentModule->getName()];
         currentModule->setParams(params);
 
