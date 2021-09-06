@@ -33,7 +33,7 @@ void Module::scheduleEvent(Event *ev, Time *t) {
 void Module::cancelEvent(Event *ev) {
 
   if ( ! ev) {
-    ERROR("Unable to schedule empty event");
+    ERROR("Unable to cancel empty event");
     return;
   }
 
@@ -55,6 +55,11 @@ JsonValue* Module::getParam(std::string paramName) {
 
 //------------------------------------------------------------------------------
 void Module::setParams(JsonValue *params)  {
+
+  if ( ! params) {
+    ERROR("Missing params");
+    return;
+  }
 
   DEBUG("Module %s params: %s", name_.c_str(), params->toString().c_str());
   params_ = params;

@@ -37,7 +37,7 @@ class Module : public Object {
 
   virtual void finalize(void) = 0;
 
-  virtual int initStages() {
+  virtual int initStages(void) {
     // Defaults to a single initialization stage
     return 1;
   }
