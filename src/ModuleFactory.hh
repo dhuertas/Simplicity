@@ -26,9 +26,9 @@ class ModuleFactory {
     return &instance;
   }
 
-  bool registerModule(std::string moduleName, CreateModuleFn pFnCreate);
+  bool registerModule(const std::string &moduleName, CreateModuleFn pFnCreate);
 
-  Module *createModule(std::string moduleName);
+  Module *createModule(const std::string &moduleName);
 
 };
 

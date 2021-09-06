@@ -1,13 +1,13 @@
 #include "ModuleFactory.hh"
 
 //------------------------------------------------------------------------------
-bool ModuleFactory::registerModule(std::string moduleName, CreateModuleFn pFnCreate) {
+bool ModuleFactory::registerModule(const std::string &moduleName, CreateModuleFn pFnCreate) {
   map_[moduleName] = pFnCreate;
   return true;
 }
 
 //------------------------------------------------------------------------------
-Module *ModuleFactory::createModule(std::string moduleName) {
+Module *ModuleFactory::createModule(const std::string &moduleName) {
 
   FactoryMap::iterator it = map_.find(moduleName);
 
