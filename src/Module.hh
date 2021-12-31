@@ -44,6 +44,8 @@ class Module : public Object {
 
   void scheduleEvent(Event *ev, Time *t);
 
+  void scheduleEvent(Event *ev);
+
   void cancelEvent(Event *ev);
 
   unsigned int getId() { return id_; }

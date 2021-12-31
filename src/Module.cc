@@ -22,10 +22,30 @@ void Module::scheduleEvent(Event *ev, Time *t) {
     return;
   }
 
-  Object *obj = (Object *)ev;
   ev->setTime(*t);
 
+  Object *obj = (Object *)ev;
+
   fes_->push(obj);
+  ev->setScheduled(true);
+}
+
+//------------------------------------------------------------------------------
+void Module::scheduleEvent(Event *ev) {
+
+  if ( ! ev) {
+    ERROR("Unable to schedule empty event");
+    return;
+  }
+
+  if ( ! ev->getTime()) {
+    ERROR("Unable to schedule event with no time");
+	return;
+  }
+
+  Object *obj = (Object *)ev;
+  fes_->push(obj);
+
   ev->setScheduled(true);
 }
 
