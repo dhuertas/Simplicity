@@ -3,13 +3,13 @@ Simplicity
 
 A simple event driven simulation framework.
 
-# How to
+## How to
 
 Download Simplicity framework and include the Makefile.inc in your project
 Makefile:
 
 ```
-include SIMPLICITY_PATH/Makefile.inc
+#include SIMPLICITY_PATH/Makefile.inc
 ```
 
 Check the Makefile.inc to know what variables are used.
