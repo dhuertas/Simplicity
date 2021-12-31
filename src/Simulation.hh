@@ -8,7 +8,6 @@
 #include "JsonValue.hh"
 #include "Time.hh"
 #include "Domain.hh"
-#include "WebServer.hh"
 #include "MersenneTwister.hh"
 
 #define Sim \

@@ -14,19 +14,17 @@ typedef struct Options {
   int verbosity;
   char *configFile;
   char *path;
-  bool web;
 } options_t;
 
 static const struct option longOpts[] = {
   { "config",   required_argument,  NULL, 'c' },
   { "quiet",    no_argument,        NULL, 'q' },
   { "verbose",  no_argument,        NULL, 'v' },
-  { "web",      no_argument,        NULL, 'w' },
   { "help",     no_argument,        NULL, 'h' },
   { NULL,       no_argument,        NULL, 0 }
 };
 
-static const char *optString = "c:qvwh?";
+static const char *optString = "c:qvh?";
 
 //------------------------------------------------------------------------------
 void printHelp(const char *name) {
@@ -35,7 +33,6 @@ void printHelp(const char *name) {
   printf("\t-c, --config: configuration file\n");
   printf("\t-q, --quiet: no output\n");
   printf("\t-v, --verbosity: increase verbosity\n");
-  printf("\t-w, --web: enable web interface\n");
   printf("\t-h, --help: this help\n");
 }
 
@@ -60,9 +57,6 @@ int getOptions(int argc, char *argv[], options_t *options) {
         break;
       case 'v':
         options->verbosity++;
-        break;
-      case 'w':
-        options->web = true;
         break;
       case 'h':
       case '?':
@@ -99,7 +93,6 @@ int main(int argc, char *argv[]) {
   options.quiet = 0;
   options.configFile = NULL;
   options.path = argv[0];
-  options.web = false;
 
   getOptions(argc, argv, &options);
 
@@ -130,47 +123,19 @@ int main(int argc, char *argv[]) {
 
   int configResult = 0;
 
-  if (options.web) {
+  // Single run
+  configResult = sim->configure(
+    options.configFile,
+    options.path);
 
-    // Interactive simulation
-    WebServer *server = new WebServer();
-
-    configResult = server->configure(
-      "server.json",
-      options.path);
-
-    if (configResult != 0) {
-      ERROR("Error(%d): unable to configure web server", configResult);
-
-      delete server;
-      exit(configResult);
-    }
-
-    server->setSimulation(sim);
-    server->start();
-
-    INFO("web server started (press ctrl+c to exit)");
-
-    server->join();
-    delete server;
-    server = NULL;
-
-  } else {
-
-    // Single run
-    configResult = sim->configure(
-      options.configFile,
-      options.path);
-
-    // Configuration should go flawless
-    if (configResult != 0) {
-      ERROR("Error(%d): unable to configure simulation", configResult);
-      exit(configResult);
-    }
-
-    sim->run();
-    sim->finalize();
+  // Configuration should go flawless
+  if (configResult != 0) {
+    ERROR("Error(%d): unable to configure simulation", configResult);
+    exit(configResult);
   }
+
+  sim->run();
+  sim->finalize();
 
   exit(0);
 }
